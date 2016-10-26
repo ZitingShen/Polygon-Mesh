@@ -3,17 +3,9 @@
 
 #include <iostream>
 #include <fstream>
-#include <glm/glm.hpp>
 #include <vector>
-#include <string.h>
-
-#ifdef __APPLE__
-#include <GLFW/glfw3.h>
-#include <OpenGL/glu.h>
-#else
-#include <GLFW/glfw3.h>
-#include <GL/glu.h>
-#endif
+#include <cstring>
+#include "common.h"
 
 using namespace std;
 
