@@ -34,7 +34,7 @@ void MESH::compute_face_normal(){
 }
 
 void MESH::compute_vertex_normal(){
-  vector<vector<int> > faces_per_vertex;
+  vector<vector<int> > faces_per_vertex(this->num_v, vector<int>(this->num_v));
   glm::vec3 normal(0, 0, 0);
   int count = 0;
   for (int i=0; i<(int)this->num_f; i++){
@@ -104,8 +104,8 @@ void read_mesh(string filename, MESH& mesh,
 
 
 void read_all_meshes(vector<string>& filenames, vector<MESH>& all_meshes,
-                     glm::vec3 max_xyz,
-                     glm::vec3 min_xyz){
+                     glm::vec3& max_xyz,
+                     glm::vec3& min_xyz){
   max_xyz[0] = -FLT_MAX;
   max_xyz[1] = -FLT_MAX;
   max_xyz[2] = -FLT_MAX;
@@ -134,7 +134,7 @@ void print_mesh_info(MESH& mesh){
   for (int i = 0; i<(int)mesh.num_f; i++){
     cout << (int)mesh.faces.num_v[i] << " ";
     for (int j=0; j<(int)mesh.faces.num_v[i]; j++){
-      cout << mesh.faces.indices[count] << " ";
+      cout << (int)mesh.faces.indices[count] << " ";
       count++;
     }
     cout << endl;

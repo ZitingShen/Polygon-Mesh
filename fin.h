@@ -10,9 +10,9 @@
 using namespace std;
 
 typedef struct _texture{
-  vector<glm::vec3> diffuse;
-  vector<glm::vec3> ambient;
-  vector<glm::vec3> specular;
+  glm::vec3 diffuse;
+  glm::vec3 ambient;
+  glm::vec3 specular;
   GLfloat shineness;
 } TEXTURE;
 
