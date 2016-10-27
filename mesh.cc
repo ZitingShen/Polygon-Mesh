@@ -1,7 +1,17 @@
 include "mesh.h"
 
+using namespace std;
+
+int WIDTH, HEIGHT;
 int IS_PAUSED = GLFW_FALSE;
 int PAUSE_TIME = 0;
+p_mode PROJ_MODE = PERSPECTIVE;
+s_mode SHADING_MODE = SMOOTH;
+d_mode DRAW_MODE = FACE;
+glm::mat4 PROJ_MAT, MV_MAT;
+glm::vec3 MIN_XYZ, MAX_XYZ;
+GLfloat zoom_step;
+vector<MESH> MESHES;
 
 int main(){
   if (!glfwInit ()) {
@@ -29,6 +39,7 @@ int main(){
   glfwMakeContextCurrent(window);
   glfwSetWindowSizeCallback(window, reshape);
   glfwSetKeyCallback(window, keyboard);
+  glfwSetMouseButtonCallback(window, mouse);
   glfwSetFramebufferSizeCallback(window, framebuffer_resize);
   
   glEnable(GL_DEPTH_TEST);
@@ -38,12 +49,13 @@ int main(){
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glfwPollEvents();
 
-    if(!IS_PAUSED || PAUSE_TIME > 0) {
-        
+    if(glfwGetWindowAttrib(window, GLFW_VISIBLE)){
+      draw_mesh();
+    }
+
+    if(!IS_PAUSED || PAUSE_TIME > 0) { 
       update_pos(A_FLOCK);
-      if(glfwGetWindowAttrib(window, GLFW_VISIBLE)){
-        draw_mesh();
-      }
+      
       glfwSwapBuffers(window);
       if (IS_PAUSED && PAUSE_TIME > 0) {
         //print_mesh();
@@ -55,12 +67,12 @@ int main(){
   exit(EXIT_SUCCESS);
 }
 
-void init(GLFWwindow* window) {
+void init() {
   glClearColor(CLEAR_COLOR[0], CLEAR_COLOR[1], CLEAR_COLOR[2], 1.0);
   glColor3f(0.0, 0.0, 0.0);
 
-  glfwGetWindowSize(window, &WIDTH, &HEIGHT);
-  myPerspective(PROJ_MAT, 45, WIDTH*1.0/HEIGHT, CAMERA_NEAR, CAMERA_FAR);
+  change_perspective();
+  change_view();
 }
 
 void framebuffer_resize(GLFWwindow* window, int width, int height) {
@@ -74,77 +86,57 @@ void reshape(GLFWwindow* window, int w, int h) {
 void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods) {
   if (action == GLFW_PRESS) {
     switch(key) {
-      case GLFW_KEY_EQUAL:
-      add_a_boid(A_FLOCK);
-      break;
-
-      case GLFW_KEY_MINUS:
-      remove_a_boid(A_FLOCK);
-      break;
-
       case GLFW_KEY_P:
+      PROJ_MODE = 1 - PROJ_MODE;
+      change_perspective();
+      break;
+
+      case GLFW_KEY_A:
       IS_PAUSED = GLFW_TRUE;
       PAUSE_TIME++;
       break;
 
-      case GLFW_KEY_R:
+      case GLFW_KEY_Q:
       IS_PAUSED = GLFW_FALSE;
       PAUSE_TIME = 0;
       break;
 
-      case GLFW_KEY_V:
-      VIEW_MODE  = DEFAULT;
-      glfwGetWindowSize(window, &WIDTH, &HEIGHT);
-      myPerspective(PROJ_MAT, 45, WIDTH*1.0/HEIGHT, CAMERA_NEAR, CAMERA_FAR);
+      case GLFW_KEY_E:
+      DRAW_MODE = EDGE;
+      break;
+
+      case GLFW_KEY_R:
+      DRAW_MODE = VERTEX;
       break;
 
       case GLFW_KEY_T:
-      VIEW_MODE = TRAILING;
-      glfwGetWindowSize(window, &WIDTH, &HEIGHT);
-      myPerspective(PROJ_MAT, 30, WIDTH*1.0/HEIGHT, CAMERA_NEAR, CAMERA_FAR);
-      break;
-
-      case GLFW_KEY_G:
-      VIEW_MODE = SIDE;
-      glfwGetWindowSize(window, &WIDTH, &HEIGHT);
-      myPerspective(PROJ_MAT, 40, WIDTH*1.0/HEIGHT, CAMERA_NEAR, CAMERA_FAR);
-      break;
-
-      case GLFW_KEY_A:
-      A_GOAL->MOVE_ALONG_X_NEGATIVE = true;
-      break;
-
-      case GLFW_KEY_D:
-        A_GOAL->MOVE_ALONG_X_POSITIVE = true;
-      break;
-
-      case GLFW_KEY_W:
-        A_GOAL->MOVE_ALONG_Y_POSITIVE = true;
+      DRAW_MODE = FACE;
       break;
 
       case GLFW_KEY_S:
-        A_GOAL->MOVE_ALONG_Y_NEGATIVE = true;
+      SHADING_MODE = FLAT;
       break;
 
-      case GLFW_KEY_C:
-        INDEX = (INDEX == 0)?1:0;
+      case GLFW_KEY_F:
+      SHADING_MODE = SMOOTH;
       break;
 
-      case GLFW_KEY_U:
-        if (!GUARDIAN){ A_PREDATOR = create_a_predator(A_FLOCK, A_GOAL, GUARDIAN);}
-        else { delete_predator(A_PREDATOR, GUARDIAN);}
+      case GLFW_KEY_D:
+      SHADING_MODE = PHONG;
       break;
 
-      case GLFW_KEY_RIGHT:
-        A_GOAL->ACCELERATE = true;
+      case GLFW_KEY_UP:
+      glm::vec3 diff = (MAX_XYZ - MIN_XYZ)*ZOOM_STEP_RATIO;
+      MIN_XYZ += diff;
+      MAX_XYZ -= diff;
+      change_perspective();
       break;
 
-      case GLFW_KEY_LEFT:
-        A_GOAL->DECELERATE = true;
-      break;
-
-      case GLFW_KEY_B:
-        teleport_goal(A_GOAL);
+      case GLFW_KEY_DOWN:
+      glm::vec3 diff = (MAX_XYZ - MIN_XYZ)*ZOOM_STEP_RATIO;
+      MIN_XYZ -= diff;
+      MAX_XYZ += diff;
+      change_perspective();
       break;
 
       case GLFW_KEY_Q:
@@ -154,34 +146,17 @@ void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods) {
       default:
       break;
     }
-  } else if (action == GLFW_RELEASE) {
-    switch(key) {
-      case GLFW_KEY_A:
-      A_GOAL->MOVE_ALONG_X_NEGATIVE = false;
-      break;
+  }
+}
 
-      case GLFW_KEY_D:
-      A_GOAL->MOVE_ALONG_X_POSITIVE = false;
-      break;
+void mouse(GLFWwindow* window, int button, int action, int mods) {
+  double mousex, mousey;
+  int w, h;
+  
+  if (action == GLFW_PRESS && button == GLFW_MOUSE_BUTTON_LEFT) {
+    
+  } else if (action == GLFW_RELEASE && button == GLFW_MOUSE_BUTTON_LEFT) {
 
-      case GLFW_KEY_W:
-      A_GOAL->MOVE_ALONG_Y_POSITIVE = false;
-      break;
-
-      case GLFW_KEY_S:
-      A_GOAL->MOVE_ALONG_Y_NEGATIVE = false;
-
-      case GLFW_KEY_RIGHT:
-      A_GOAL->ACCELERATE = false;
-      break;
-
-      case GLFW_KEY_LEFT:
-      A_GOAL->DECELERATE = false;
-      break;
-
-      default:
-      break;
-    }
   }
 }
 
@@ -191,4 +166,25 @@ static GLuint make_bo(GLenum type, const void *buf, GLsizei buf_size) {
   glBindBuffer(type, bufnum);
   glBufferData(type, buf_size, buf, GL_STATIC_DRAW);
   return bufnum;
+}
+
+void change_perspective() {
+  if (PROJ_MODE == PARALLEL) {
+    PROJ_MAT = glm::ortho(MIN_XYZ[0], MAX_XYZ[0],
+                          MIN_XYZ[1], MAX_XYZ[1],
+                          MIN_XYZ[2], MAX_XYZ[2]);
+  } else if (PROJ_MODE == PERSPECTIVE) {
+    glfwGetWindowSize(window, &WIDTH, &HEIGHT);
+    PROJ_MAT = glm::perspective(45, WIDTH*1.0/HEIGHT, CAMERA_NEAR, CAMERA_FAR);
+  } else {
+    cerr << "Invalid projection mode: " << PROJ_MODE << endl;
+  }
+}
+
+void change_view() {
+  glm::vec3 diff = MAX_XYZ - MIN_XYZ;
+  glm::vec3 center = (MAX_XYZ + MIN_XYZ)*0.5;
+  glm::vec3 eye(center[0] + diff*INITIAL_X_DISPLACEMENT, 
+                MIN_XYZ[1] - diff*INITIAL_X_DISPLACEMENT, MAX_XYZ[2]);
+  MV_MAT = glm::lookAt(eye, center, glm::vec3(0, 0, 1));
 }
