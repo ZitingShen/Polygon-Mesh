@@ -63,6 +63,19 @@ void MESH::compute_vertex_normal(){
   }
 }
 
+void MESH::interleave(GLfloat arry[]){
+  int count = 0;
+  for (int i=0; i<this->num_v; i++){
+    arry[i] = this->vertices.pos[count][0];
+    arry[i+1] = this->vertices.pos[count][1];
+    arry[i+2] = this->vertices.pos[count][2];
+    arry[i+3] = this->vertices.normal[count][0];
+    arry[i+4] = this->vertices.normal[count][1];
+    arry[i+5] = this->vertices.normal[count][2];
+    count += 6;
+  }
+}
+
 void read_mesh(string filename, MESH& mesh,
                glm::vec3& max_xyz,
                glm::vec3& min_xyz){
@@ -163,4 +176,10 @@ void load_texture(MESH& mesh, const GLfloat* texture){
   mesh.texture.specular[1] = texture[7];
   mesh.texture.specular[2] = texture[8];
   mesh.texture.shineness   = texture[9];
+}
+
+void load_random_texture(vector<MESH>& all_meshes){
+  for (int i=0; i<(int)all_meshes.size(); i++){
+    load_texture(all_meshes[i], material_props[MAT_DEFAULT]);
+  }
 }

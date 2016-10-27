@@ -46,6 +46,7 @@ class MESH {
           FACE     faces);
     void compute_face_normal();
     void compute_vertex_normal();
+    void interleave(GLfloat arry[]);
     void draw();
 };
 
@@ -106,4 +107,5 @@ void read_all_meshes(vector<string>& filenames, vector<MESH>& all_meshes,
                      glm::vec3& min_xyz);
 void print_mesh_info(MESH& mesh);
 void load_texture(MESH& mesh, const GLfloat* texture);
+void load_random_texture(vector<MESH>& all_meshes);
 #endif
