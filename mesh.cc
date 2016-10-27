@@ -9,8 +9,8 @@ p_mode PROJ_MODE = PERSPECTIVE;
 s_mode SHADING_MODE = SMOOTH;
 d_mode DRAW_MODE = FACE;
 glm::mat4 PROJ_MAT, MV_MAT;
-glm::vec3 MIN_XYZ, MAX_XYZ;
-GLfloat zoom_step;
+glm::vec3 MIN_XYZ, MAX_XYZ, CURRENT_MIN, CURRENT_MAX;
+glm::vec3 LIGHT_POSITION;
 vector<MESH> MESHES;
 
 int main(){
@@ -58,7 +58,7 @@ int main(){
       
       glfwSwapBuffers(window);
       if (IS_PAUSED && PAUSE_TIME > 0) {
-        //print_mesh();
+        print();
         PAUSE_TIME--;
       }
     }
@@ -68,9 +68,12 @@ int main(){
 }
 
 void init() {
-  glClearColor(CLEAR_COLOR[0], CLEAR_COLOR[1], CLEAR_COLOR[2], 1.0);
+  glClearColor(0, 0, 0, 1.0);
   glColor3f(0.0, 0.0, 0.0);
 
+  CURRENT_MIN = MIN_XYZ;
+  CURRENT_MAX = MAX_XYZ;
+  LIGHT_POSITION = glm::vec3(MAN_XYZ[0], MIN_XYZ[1]*2, MAX_XYZ[2]*2);
   change_perspective();
   change_view();
 }
@@ -127,15 +130,15 @@ void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods) {
 
       case GLFW_KEY_UP:
       glm::vec3 diff = (MAX_XYZ - MIN_XYZ)*ZOOM_STEP_RATIO;
-      MIN_XYZ += diff;
-      MAX_XYZ -= diff;
+      CURRENT_MIN += diff;
+      CURRENT_MAX -= diff;
       change_perspective();
       break;
 
       case GLFW_KEY_DOWN:
       glm::vec3 diff = (MAX_XYZ - MIN_XYZ)*ZOOM_STEP_RATIO;
-      MIN_XYZ -= diff;
-      MAX_XYZ += diff;
+      CURRENT_MIN -= diff;
+      CURRENT_MAX += diff;
       change_perspective();
       break;
 
@@ -184,7 +187,18 @@ void change_perspective() {
 void change_view() {
   glm::vec3 diff = MAX_XYZ - MIN_XYZ;
   glm::vec3 center = (MAX_XYZ + MIN_XYZ)*0.5;
-  glm::vec3 eye(center[0] + diff*INITIAL_X_DISPLACEMENT, 
+  glm::vec3 eye = glm::vec3(center[0] + diff*INITIAL_X_DISPLACEMENT, 
                 MIN_XYZ[1] - diff*INITIAL_X_DISPLACEMENT, MAX_XYZ[2]);
   MV_MAT = glm::lookAt(eye, center, glm::vec3(0, 0, 1));
+}
+
+void interleave();
+void draw_mesh();
+void print() {
+  cout << "Current left: " << CURRENT_MIN[0] << endl;
+  cout << "Current right: " << CURRENT_MAX[0] << endl;
+  cout << "Current near: " << CURRENT_MIN[1] << endl;
+  cout << "Current far: " << CURRENT_MAX[1] << endl;
+  cout << "Current bottom: " << CURRENT_MIN[2] << endl;
+  cout << "Current up: " << CURRENT_MIN[2] << endl;
 }
