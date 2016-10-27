@@ -9,25 +9,50 @@
 
 using namespace std;
 
-typedef struct _mesh{
-  glm::vec3 attribute; // {vertices, faces, edges}
-  vector<glm::vec3> vertices;
-  struct {
-  	vector<glm::vec3> colour;
-  	vector<glm::vec3> normal; // in vbos  
-  							  // normal of a triangle mesh n = (p1 - p0) * (p2-p0) // assuming counter-clock-wise
-  };
-  struct texture {
-  	vector<glm::vec3> diffuse;
-  	vector<glm::vec3> ambient;
-  	vector<glm::vec3> specular;
-  	GLfloat shineness;
-  };
-  //vector<glm::vec3> vertices;
-  vector<int> vec_in_face;
-  vector<glm::vec4> faces;
-  vector<GLuint> indices; // for drawing?
-  //vector<glm::vec3> normals; // (DEPRECATED) using the same normal for the same face for lighting? [Flat Shading approach]
+typedef struct _texture{
+  vector<glm::vec3> diffuse;
+  vector<glm::vec3> ambient;
+  vector<glm::vec3> specular;
+  GLfloat shineness;
+} TEXTURE;
+
+typedef struct _vertices{
+  vector<glm::vec3> pos;
+  vector<glm::vec3> normal;
+} VERTICES;
+
+typedef struct _faces{
+  vector<GLuint> num_v;
+  vector<GLubyte> indices;
+  vector<glm::vec3> normal;
+} FACE;
+
+class MESH {
+  public:
+    /* public data member */
+    GLuint num_v;
+    GLuint num_f;
+    GLuint num_e;
+    VERTICES vertices;
+    TEXTURE  texture;
+    FACE     faces;
+    /* Constructor */
+    MESH();
+    MESH( GLuint num_v,
+          GLuint num_f,
+          GLuint num_e,
+          VERTICES vertices,
+          TEXTURE  texture,
+          FACE     faces;)
+    void compute_face_normal();
+    void compute_vertex_normal();
+    void draw();
+};
+
+ // in vbos
+ // normal of a triangle mesh n = (p1 - p0) * (p2-p0) // assuming counter-clock-wise
+ //vector<glm::vec3> vertices;
+ //vector<glm::vec3> normals; // (DEPRECATED) using the same normal for the same face for lighting? [Flat Shading approach]
   							 // (Shader-based: Has to compute normal PER VERTEX- so no saving whatsoever)
   							 // 
 
@@ -54,9 +79,9 @@ typedef struct _mesh{
 	 2. direction
 	 3. intensity
   */
-} MESH;
 
 typedef struct _light{
+ // using light
  glm::vec4 diffuse0 = glm::vec4(1.0, 1.0, 1.0, 1.0);
  glm::vec4 ambient0 = glm::vec4(1.0, 1.0, 1.0, 1.0);
  glm::vec4 specular0 = glm::vec4(1.0, 1.0, 1.0, 1.0);
@@ -69,12 +94,16 @@ typedef struct _light{
 
 
 /* Bling-Phong model
-   halfway vector: h = (l+v)/ |l+v|  
+   halfway vector: h = (l+v)/ |l+v|
    1. substitute r*v with n*h, in order to avoid calculating r (perfect reflection) 
    2. weaken specular -> compensate with a smaller alpha  */
 
-void read_mesh(string filename, MESH& mesh);
-void read_all_meshes(vector<string>& filenames, vector<MESH>& all_meshes);
+void read_mesh(string filename, MESH& mesh,
+               glm::vec3& max_xyz,
+               glm::vec3& min_xyz);
+void read_all_meshes(vector<string>& filenames, vector<MESH>& all_meshes,
+                     glm::vec3& max_xyz,
+                     glm::vec3& min_xyz);
 void print_mesh_info(MESH& mesh);
-
+void load_texture(MESH& mesh, const GLfloat* texture);
 #endif

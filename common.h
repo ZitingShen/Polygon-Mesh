@@ -9,4 +9,5 @@
 #include <GL/glu.h>
 #endif
 #include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #endif
