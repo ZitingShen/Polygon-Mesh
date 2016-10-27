@@ -26,29 +26,40 @@ void MESH::compute_face_normal(){
   unsigned int count = 0;
   // Assuming all vertices are given in counter-clock order
   for (int i=0; i<(int)this->num_f; i++){
-    normal = glm::cross(this->vertices.pos[count + 2] - this->vertices.pos[count + 1],
-                   this->vertices.pos[count] - this->vertices.pos[count + 1]);
+    normal = glm::cross(this->vertices.pos[ this->faces.indices[count + 2] ] 
+                      - this->vertices.pos[ this->faces.indices[count + 1] ],
+                        this->vertices.pos[ this->faces.indices[count] ] 
+                      - this->vertices.pos[ this->faces.indices[count + 1]] );
     this->faces.normal.push_back(glm::normalize(normal));
     count += (int)this->faces.num_v[i]; // moving to the next face
   }
 }
 
 void MESH::compute_vertex_normal(){
-  vector<vector<int> > faces_per_vertex(this->num_v, vector<int>(this->num_v));
+  vector<vector<int> > faces_per_vertex(this->num_v, vector<int>());
   glm::vec3 normal(0, 0, 0);
   int count = 0;
-  for (int i=0; i<(int)this->num_f; i++){
-    for (int j=0; j<(int)this->faces.num_v[i]; j++){
-      faces_per_vertex[ this->faces.indices[count] ].push_back(num_f);
-      count++;
+  for (int i=0; i<(int)this->num_f; i++){  // which face we are looking at
+    for (int j=0; j<(int)this->faces.num_v[i]; j++){  // all vertices in this face
+      //cout << this->faces.num_v[i] << endl;
+      faces_per_vertex[ this->faces.indices[count] ].push_back(i);
+      count++;      
     }
-  }
+  }    
+//    for (auto k = faces_per_vertex[2].begin(); k != faces_per_vertex[2].end(); k++)
+//     cout << (*k) << ' ';
+//    cout << endl;
+
   for (int i=0; i<(int)this->num_v; i++){
     for (int j=0; j<(int)faces_per_vertex[i].size(); j++){
       normal += this->faces.normal[faces_per_vertex[i][j]];
     }
     normal = glm::normalize(normal * (1.0f / (float)faces_per_vertex[i].size()));
     this->vertices.normal.push_back(normal);
+    normal = glm::vec3(0, 0, 0);
+//    cout << this->vertices.normal[i][0] << " "
+//         << this->vertices.normal[i][1] << " "
+//         << this->vertices.normal[i][2] << " " << endl;
   }
 }
 
