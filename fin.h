@@ -43,7 +43,7 @@ class MESH {
           GLuint num_e,
           VERTICES vertices,
           TEXTURE  texture,
-          FACE     faces;)
+          FACE     faces);
     void compute_face_normal();
     void compute_vertex_normal();
     void draw();
