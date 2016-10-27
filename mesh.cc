@@ -11,9 +11,11 @@ d_mode DRAW_MODE = FACE;
 glm::mat4 PROJ_MAT, MV_MAT;
 glm::vec3 MIN_XYZ, MAX_XYZ, CURRENT_MIN, CURRENT_MAX;
 glm::vec3 LIGHT_POSITION;
+vector<string> FILE_NAMES;
 vector<MESH> MESHES;
+GLfloat[] INTERLEAVED_DATA;
 
-int main(){
+int main(int argc, char *argv[]){
   if (!glfwInit ()) {
     std::cerr << "ERROR: could not start GLFW3" << std::endl;
     exit(EXIT_FAILURE);
@@ -34,6 +36,10 @@ int main(){
 
   glewExperimental = GL_TRUE;
   glewInit();
+
+  for (int i = 1; i < argc; i++)
+    FILE_NAMES.push_back(string(argv[i]));
+  read_all_meshes(FILE_NAMES, MESHES, MAX_XYZ, MIN_XYZ);
   init(window);
 
   glfwMakeContextCurrent(window);
@@ -73,9 +79,16 @@ void init() {
 
   CURRENT_MIN = MIN_XYZ;
   CURRENT_MAX = MAX_XYZ;
-  LIGHT_POSITION = glm::vec3(MAN_XYZ[0], MIN_XYZ[1]*2, MAX_XYZ[2]*2);
+  LIGHT_POSITION = glm::vec3(MAN_XYZ[0], 
+                            MIN_XYZ[1]*2-MAX_XYZ[1], 
+                            MAX_XYZ[2]*2-MIN_XYZ[2]);
   change_perspective();
   change_view();
+
+  int start = 0;
+  for(auto k = MESHES.begin(); k != MESHES.end(); k++) {
+    
+  }
 }
 
 void framebuffer_resize(GLFWwindow* window, int width, int height) {
@@ -192,8 +205,8 @@ void change_view() {
   MV_MAT = glm::lookAt(eye, center, glm::vec3(0, 0, 1));
 }
 
-void interleave();
-void draw_mesh();
+void draw_mesh(){}
+
 void print() {
   cout << "Current left: " << CURRENT_MIN[0] << endl;
   cout << "Current right: " << CURRENT_MAX[0] << endl;
