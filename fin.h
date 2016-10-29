@@ -9,45 +9,49 @@
 
 using namespace std;
 
-typedef struct _texture{
+struct TEXTURE{
   glm::vec3 diffuse;
   glm::vec3 ambient;
   glm::vec3 specular;
   GLfloat shineness;
-} TEXTURE;
+};
 
-typedef struct _vertices{
-  vector<glm::vec3> pos;
-  vector<glm::vec3> normal;
-} VERTICES;
+struct VERTEX{
+  glm::vec3 pos;
+  glm::vec3 normal;
+};
 
-typedef struct _faces{
+struct FACES{
   vector<GLuint> num_v;
-  vector<GLubyte> indices;
-  vector<glm::vec3> normal;
-} FACE;
+  vector<GLuint> indices;  // origianl indices verbatim
+  vector<GLuint> draw_indices; // triangulised indices
+  vector<glm::vec3> normal;     // nromals of triangulaised faces
+};
 
 class MESH {
   public:
     /* public data member */
     GLuint num_v;
-    GLuint num_f;
+    GLuint num_f; // not necessarily the num of triangles to be drawn
     GLuint num_e;
-    VERTICES vertices;
+    vector<VERTEX> vertices;
     TEXTURE  texture;
-    FACE     faces;
+    FACES     faces;
     /* Constructor */
     MESH();
     MESH( GLuint num_v,
           GLuint num_f,
           GLuint num_e,
-          VERTICES vertices,
-          TEXTURE  texture,
-          FACE     faces);
+          vector<VERTEX>& vertices,
+          TEXTURE&  texture,
+          FACE&     faces);
+    void bind();
+    void get_render_data(GLuint& vao, GLuint&vbo, GLuint& ebo);
+
     void compute_face_normal();
     void compute_vertex_normal();
-    void interleave(GLfloat arry[]);
-    void draw();
+  private:
+    GLuint vao, vbo, ebo;
 };
 
  // in vbos
@@ -80,17 +84,14 @@ class MESH {
 	 2. direction
 	 3. intensity
   */
-
 typedef struct _light{
  // using light
  glm::vec4 diffuse0 = glm::vec4(1.0, 1.0, 1.0, 1.0);
  glm::vec4 ambient0 = glm::vec4(1.0, 1.0, 1.0, 1.0);
  glm::vec4 specular0 = glm::vec4(1.0, 1.0, 1.0, 1.0);
- union { // either positional or directional
- 	glm::vec4 light0_pos;// = glm::vec4(10, 20 ,30, 1.0); // point
- 	glm::vec4 light0_dir;// = glm::vec4(10, 20 ,30, 0.0); // direction
- };
+ glm::vec4 light0;
  glm::vec4 dropoff_coeff = glm::vec4(0.1, 0.1, 0.1, 0.1); //a, b, c, d
+ bool point;
 } LIGHT;
 
 
