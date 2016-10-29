@@ -8,6 +8,7 @@ int main(){
 	filenames.push_back("test.off");
 	filenames.push_back("test2.off");
 	all_meshes.reserve(filenames.size());
+	all_meshes.resize(filenames.size());
 	//filenames.push_back("test2.off");
 
 	read_all_meshes(filenames, all_meshes, max_xyz, min_xyz);

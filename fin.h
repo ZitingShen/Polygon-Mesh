@@ -34,20 +34,16 @@ class MESH {
     GLuint num_v;
     GLuint num_f; // not necessarily the num of triangles to be drawn
     GLuint num_e;
-    vector<VERTEX> vertices;
+    vector<VERTEX> vertices;       // vertex pos and vertex normal
+    vector<VERTEX> vertices_flat;  // vertex pos and face normal
     TEXTURE  texture;
     FACES     faces;
     /* Constructor */
     MESH();
-    MESH( GLuint num_v,
-          GLuint num_f,
-          GLuint num_e,
-          vector<VERTEX>& vertices,
-          TEXTURE&  texture,
-          FACE&     faces);
     void bind();
+    void bind_flat();
+    void bind_other();
     void get_render_data(GLuint& vao, GLuint&vbo, GLuint& ebo);
-
     void compute_face_normal();
     void compute_vertex_normal();
   private:

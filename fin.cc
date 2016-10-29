@@ -6,35 +6,20 @@ MESH::MESH(){
   this->num_e = 0;
 }
 
-MESH::MESH(GLuint num_v,
-           GLuint num_f,
-           GLuint num_e,
-           vector<VERTEX>& vertices,
-           TEXTURE&  texture,
-           FACES&     faces){
-  this->num_v = num_v;
-  this->num_f = num_f;
-  this->num_e = num_e;
-  this->vertices = vertices;
-  this->texture  = texture;
-  this->faces    = faces;
-}
-
 void MESH::bind(){
-  glGenVertexArrays(1, &this->vao);
-  glGenBuffers(1, &this->vbo);
-  glGenBuffers(1, &this->ebo);
-
   // bind vao
+  glGenVertexArrays(1, &this->vao);
   glBindVertexArray(this->vao);
 
   // bind vbo
+  glGenBuffers(1, &this->vbo);
   glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
   glBufferData(GL_ARRAY_BUFFER,
                this->vertices.size()*sizeof(VERTEX),
                &this->vertices[0], GL_STATIC_DRAW);
 
   //bind ebo
+  glGenBuffers(1, &this->ebo);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ebo);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER,
                this->faces.draw_indices.size()*sizeof(GLuint),
@@ -55,6 +40,24 @@ void MESH::bind(){
                         (GLvoid*)offsetof(VERTEX, normal));
 
   glBindVertexArray(0);
+}
+
+void MESH::bind_flat(){
+  // bind vbo
+  glGenBuffers(1, &this->vbo);
+  glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
+  glBufferData(GL_ARRAY_BUFFER,
+               this->vertices_flat.size()*sizeof(VERTEX),
+               &this->vertices_flat[0], GL_STATIC_DRAW);
+}
+
+void MESH::bind_other(){
+  // bind vbo
+  glGenBuffers(1, &this->vbo);
+  glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
+  glBufferData(GL_ARRAY_BUFFER,
+               this->vertices.size()*sizeof(VERTEX),
+               &this->vertices[0], GL_STATIC_DRAW);
 }
 
 void MESH::get_render_data(GLuint& vao, GLuint&vbo, GLuint& ebo){
@@ -91,7 +94,7 @@ void MESH::compute_vertex_normal(){
     }
   }
 //    for (auto k = faces_per_vertex[2].begin(); k != faces_per_vertex[2].end(); k++)
-//     cout << (*k) << ' ';
+//    cout << (*k) << ' ';
 //    cout << endl;
   count = 0;
   for (int i=0; i<(int)this->num_v; i++){
@@ -106,6 +109,24 @@ void MESH::compute_vertex_normal(){
 //    cout << this->vertices.normal[i][0] << " "
 //         << this->vertices.normal[i][1] << " "
 //         << this->vertices.normal[i][2] << " " << endl;
+  }
+
+  cout << (int)this->vertices.size() << endl;
+  cout << (int)this->faces.normal.size() << endl;
+
+  this->vertices_flat.reserve(this->faces.normal.size()*3);
+  this->vertices_flat.resize(this->faces.normal.size()*3);
+
+  cout << "got here" << endl;
+  cout << this->vertices.size() << endl;
+  cout << this->faces.draw_indices.size() << endl;
+
+  for (int i=0; i<(int)this->faces.normal.size(); i++){
+    for (int j=0; j<3; j++){
+      cout << this->faces.draw_indices[i*3+j] << endl;
+      this->vertices_flat[i*3+j].pos = this->vertices[ this->faces.draw_indices[i*3+j] ].pos;
+      this->vertices_flat[i*3+j].normal = this->vertices[ this->faces.draw_indices[i*3+j] ].normal;
+    }
   }
 }
 
@@ -134,6 +155,7 @@ void read_mesh(string filename, MESH& mesh,
   my_fin >> mesh.num_e;
   /* reading vertices */
   mesh.vertices.reserve(mesh.num_v);
+  mesh.vertices.resize(mesh.num_v);
   for (int i=0; i<(int)mesh.num_v; i++){
     for (int j=0; j<3; j++){
       my_fin >> holder[j];
@@ -175,6 +197,7 @@ void read_mesh(string filename, MESH& mesh,
   my_fin.close();
   mesh.compute_face_normal();
   mesh.compute_vertex_normal();
+  mesh.bind();
 }
 
 void read_all_meshes(vector<string>& filenames, vector<MESH>& all_meshes,
