@@ -3,8 +3,7 @@ in vec4 vPosition;
 in vec3 vNormal;
 out vec4 color; //vertex shade
 // light and material properties
-uniform vec4 AmbientProduct,
-DiffuseProduct, SpecularProduct;
+uniform vec4 AmbientProduct, DiffuseProduct, SpecularProduct;
 uniform mat4 ModelView;
 uniform mat4 Projection;
 uniform vec4 LightPosition;
