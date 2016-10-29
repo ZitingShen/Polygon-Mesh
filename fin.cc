@@ -8,6 +8,8 @@ MESH::MESH(){
 
 void MESH::bind(){
   // bind vao
+  cout << this->vao << endl;
+    cout << "got here " << endl;
   glGenVertexArrays(1, &this->vao);
   glBindVertexArray(this->vao);
 
@@ -110,20 +112,11 @@ void MESH::compute_vertex_normal(){
 //         << this->vertices.normal[i][1] << " "
 //         << this->vertices.normal[i][2] << " " << endl;
   }
-
-  cout << (int)this->vertices.size() << endl;
-  cout << (int)this->faces.normal.size() << endl;
-
   this->vertices_flat.reserve(this->faces.normal.size()*3);
   this->vertices_flat.resize(this->faces.normal.size()*3);
-
-  cout << "got here" << endl;
-  cout << this->vertices.size() << endl;
-  cout << this->faces.draw_indices.size() << endl;
-
   for (int i=0; i<(int)this->faces.normal.size(); i++){
     for (int j=0; j<3; j++){
-      cout << this->faces.draw_indices[i*3+j] << endl;
+      //cout << i*3+j << " " << this->faces.draw_indices[i*3+j] << endl;
       this->vertices_flat[i*3+j].pos = this->vertices[ this->faces.draw_indices[i*3+j] ].pos;
       this->vertices_flat[i*3+j].normal = this->vertices[ this->faces.draw_indices[i*3+j] ].normal;
     }
@@ -197,6 +190,7 @@ void read_mesh(string filename, MESH& mesh,
   my_fin.close();
   mesh.compute_face_normal();
   mesh.compute_vertex_normal();
+
   mesh.bind();
 }
 
