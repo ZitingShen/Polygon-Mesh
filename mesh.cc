@@ -77,18 +77,26 @@ void init() {
   glClearColor(0, 0, 0, 1.0);
   glColor3f(0.0, 0.0, 0.0);
 
+  load_random_texture();
   CURRENT_MIN = MIN_XYZ;
   CURRENT_MAX = MAX_XYZ;
   LIGHT_POSITION = glm::vec3(MAN_XYZ[0], 
-                            MIN_XYZ[1]*2-MAX_XYZ[1], 
-                            MAX_XYZ[2]*2-MIN_XYZ[2]);
+                             MIN_XYZ[1]*2-MAX_XYZ[1], 
+                             MAX_XYZ[2]*2-MIN_XYZ[2]);
   change_perspective();
   change_view();
 
   int start = 0;
   for(auto k = MESHES.begin(); k != MESHES.end(); k++) {
-    
+    k->interleave(start);
+    start += k->num_v*6;
   }
+
+  bindData();
+}
+
+void bindData() {
+
 }
 
 void framebuffer_resize(GLFWwindow* window, int width, int height) {
@@ -96,7 +104,7 @@ void framebuffer_resize(GLFWwindow* window, int width, int height) {
 }
 
 void reshape(GLFWwindow* window, int w, int h) {
-  change_view(MV_MAT, VIEW_MODE, A_FLOCK, A_GOAL, INDEX);
+  change_view();
 }
 
 void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods) {

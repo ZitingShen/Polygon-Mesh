@@ -2,6 +2,7 @@
 #define MESH_H
 
 #include <vector>
+#include <string>
 #include "initshader.h"
 #include "common.h"
 
@@ -19,4 +20,7 @@ void mouse(GLFWwindow *window, int button, int action, int mods);
 static GLuint make_bo(GLenum type, const void *buf, GLsizei buf_size);
 void change_perspective();
 void change_view();
+void interleave();
+void draw_mesh();
+void print();
 #endif
