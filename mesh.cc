@@ -13,7 +13,6 @@ glm::vec3 MIN_XYZ, MAX_XYZ, CURRENT_MIN, CURRENT_MAX;
 glm::vec3 LIGHT_POSITION;
 vector<string> FILE_NAMES;
 vector<MESH> MESHES;
-GLfloat[] INTERLEAVED_DATA;
 
 int main(int argc, char *argv[]){
   if (!glfwInit ()) {
@@ -76,26 +75,16 @@ void init(GLFWwindow* window) {
   glClearColor(0, 0, 0, 1.0);
   glColor3f(0.0, 0.0, 0.0);
 
-  load_random_texture();
+  load_random_texture(MESHES);
   CURRENT_MIN = MIN_XYZ;
   CURRENT_MAX = MAX_XYZ;
-  LIGHT_POSITION = glm::vec3(MAN_XYZ[0], 
+  LIGHT_POSITION = glm::vec3(MAX_XYZ[0], 
                              MIN_XYZ[1]*2-MAX_XYZ[1], 
                              MAX_XYZ[2]*2-MIN_XYZ[2]);
-  change_perspective();
+  change_perspective(window);
   change_view();
-
-  int start = 0;
-  for(auto k = MESHES.begin(); k != MESHES.end(); k++) {
-    k->interleave(start);
-    start += k->num_v*6;
-  }
-
-  bindData();
-}
-
-void bindData() {
-
+  //interleave();
+  //bindData();
 }
 
 void framebuffer_resize(GLFWwindow* window, int width, int height) {
