@@ -51,12 +51,11 @@ int main(){
 
     if(glfwGetWindowAttrib(window, GLFW_VISIBLE)){
       draw_mesh();
+      glfwSwapBuffers(window);
     }
 
-    if(!IS_PAUSED || PAUSE_TIME > 0) { 
-      update_pos(A_FLOCK);
-      
-      glfwSwapBuffers(window);
+    if(!IS_PAUSED || PAUSE_TIME > 0) {
+      //update
       if (IS_PAUSED && PAUSE_TIME > 0) {
         print();
         PAUSE_TIME--;
@@ -67,14 +66,14 @@ int main(){
   exit(EXIT_SUCCESS);
 }
 
-void init() {
+void init(GLFWwindow* window) {
   glClearColor(0, 0, 0, 1.0);
   glColor3f(0.0, 0.0, 0.0);
 
   CURRENT_MIN = MIN_XYZ;
   CURRENT_MAX = MAX_XYZ;
-  LIGHT_POSITION = glm::vec3(MAN_XYZ[0], MIN_XYZ[1]*2, MAX_XYZ[2]*2);
-  change_perspective();
+  LIGHT_POSITION = glm::vec3(MAX_XYZ[0], MIN_XYZ[1]*2, MAX_XYZ[2]*2);
+  change_perspective(window);
   change_view();
 }
 
@@ -83,15 +82,15 @@ void framebuffer_resize(GLFWwindow* window, int width, int height) {
 }
 
 void reshape(GLFWwindow* window, int w, int h) {
-  change_view(MV_MAT, VIEW_MODE, A_FLOCK, A_GOAL, INDEX);
+  change_view();
 }
 
 void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods) {
   if (action == GLFW_PRESS) {
     switch(key) {
       case GLFW_KEY_P:
-      PROJ_MODE = 1 - PROJ_MODE;
-      change_perspective();
+      PROJ_MODE = (p_mode)(1-PROJ_MODE);
+      change_perspective(window);
       break;
 
       case GLFW_KEY_A:
@@ -99,7 +98,7 @@ void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods) {
       PAUSE_TIME++;
       break;
 
-      case GLFW_KEY_Q:
+      case GLFW_KEY_Z:
       IS_PAUSED = GLFW_FALSE;
       PAUSE_TIME = 0;
       break;
@@ -128,23 +127,25 @@ void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods) {
       SHADING_MODE = PHONG;
       break;
 
-      case GLFW_KEY_UP:
+      case GLFW_KEY_UP: {
       glm::vec3 diff = (MAX_XYZ - MIN_XYZ)*ZOOM_STEP_RATIO;
       CURRENT_MIN += diff;
       CURRENT_MAX -= diff;
-      change_perspective();
+      change_perspective(window);
+      }
       break;
 
-      case GLFW_KEY_DOWN:
+      case GLFW_KEY_DOWN: {
       glm::vec3 diff = (MAX_XYZ - MIN_XYZ)*ZOOM_STEP_RATIO;
       CURRENT_MIN -= diff;
       CURRENT_MAX += diff;
-      change_perspective();
+      change_perspective(window);
+      }
       break;
 
       case GLFW_KEY_Q:
       case GLFW_KEY_ESCAPE:
-        glfwSetWindowShouldClose(window, GLFW_TRUE);
+      glfwSetWindowShouldClose(window, GLFW_TRUE);
       break;
       default:
       break;
@@ -171,14 +172,14 @@ static GLuint make_bo(GLenum type, const void *buf, GLsizei buf_size) {
   return bufnum;
 }
 
-void change_perspective() {
+void change_perspective(GLFWwindow* window) {
   if (PROJ_MODE == PARALLEL) {
     PROJ_MAT = glm::ortho(MIN_XYZ[0], MAX_XYZ[0],
                           MIN_XYZ[1], MAX_XYZ[1],
                           MIN_XYZ[2], MAX_XYZ[2]);
   } else if (PROJ_MODE == PERSPECTIVE) {
     glfwGetWindowSize(window, &WIDTH, &HEIGHT);
-    PROJ_MAT = glm::perspective(45, WIDTH*1.0/HEIGHT, CAMERA_NEAR, CAMERA_FAR);
+    PROJ_MAT = glm::perspective(45.0f, WIDTH*1.0f/HEIGHT, CAMERA_NEAR, CAMERA_FAR);
   } else {
     cerr << "Invalid projection mode: " << PROJ_MODE << endl;
   }
@@ -186,14 +187,15 @@ void change_perspective() {
 
 void change_view() {
   glm::vec3 diff = MAX_XYZ - MIN_XYZ;
-  glm::vec3 center = (MAX_XYZ + MIN_XYZ)*0.5;
-  glm::vec3 eye = glm::vec3(center[0] + diff*INITIAL_X_DISPLACEMENT, 
-                MIN_XYZ[1] - diff*INITIAL_X_DISPLACEMENT, MAX_XYZ[2]);
+  glm::vec3 center = (MAX_XYZ + MIN_XYZ)*0.5f;
+  glm::vec3 eye = glm::vec3(center[0] + diff[0]*INITIAL_X_DISPLACEMENT, 
+                MIN_XYZ[1] - diff[1]*INITIAL_Y_DISPLACEMENT, MAX_XYZ[2]);
   MV_MAT = glm::lookAt(eye, center, glm::vec3(0, 0, 1));
 }
 
-void interleave();
-void draw_mesh();
+void draw_mesh() {
+}
+
 void print() {
   cout << "Current left: " << CURRENT_MIN[0] << endl;
   cout << "Current right: " << CURRENT_MAX[0] << endl;

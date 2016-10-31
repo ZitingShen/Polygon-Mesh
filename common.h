@@ -5,24 +5,24 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <OpenGL/glu.h>
-//#include <OpenGL/gl3.h>
 #else
 #include <GLFW/glfw3.h>
 #include <GL/glu.h>
+#include <OpenGL/glu.h>
 #endif
 
 #include <time.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#define RADIAN_TO_DEGREE          57.29578 // 180 over pi
-#define	DEGREE_TO_RADIAN		  0.00873
+#define RADIAN_TO_DEGREE          57.29578f // 180 over pi
+#define	DEGREE_TO_RADIAN		      0.00873f
 
-#define CAMERA_NEAR               2
-#define CAMERA_FAR                100000000
-#define ZOOM_STEP_RATIO			  0.05
-#define INITIAL_X_DISPLACEMENT    0.2
-#define INITIAL_Y_DISPLACEMENT    0.5
+#define CAMERA_NEAR               2.0f
+#define CAMERA_FAR                100000000.0f
+#define ZOOM_STEP_RATIO			      0.05f
+#define INITIAL_X_DISPLACEMENT    0.2f
+#define INITIAL_Y_DISPLACEMENT    0.5f
 
 static GLfloat material_props[][10] = {
   {0.2, 0.2, 0.2, 0.8, 0.8, 0.8, 0.0, 0.0, 0.0, 0.0},
