@@ -251,7 +251,6 @@ void print_mesh_info(MESH& mesh){
     cout << mesh.vertices[i].normal[2] << " ";
     cout << mesh.vertices[i].normal[3] << " "  << endl;
   }
-  cout << "got here" <<endl;
 }
 
 void load_texture(MESH& mesh, const GLfloat* texture){
