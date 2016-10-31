@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <vector>
+#include <string>
 #include "initshader.h"
 #include "fin.h"
 #include "common.h"
