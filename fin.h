@@ -4,10 +4,26 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <map>
 #include <cstring>
 #include "common.h"
 
 using namespace std;
+
+  /* 
+   Light Source
+   1. position
+   2. direction
+   3. intensity
+  */
+typedef struct _light{
+ // using light
+ glm::vec4 diffuse0 = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+ glm::vec4 ambient0 = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+ glm::vec4 specular0 = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+ glm::vec4 light0;
+ glm::vec4 dropoff_coeff = glm::vec4(0.1f, 0.1f, 0.1f, 0.1f); //a, b, c, d
+} LIGHT;
 
 struct TEXTURE{
   glm::vec3 diffuse;
@@ -36,18 +52,22 @@ class MESH {
     GLuint num_e;
     vector<VERTEX> vertices;       // vertex pos and vertex normal
     vector<VERTEX> vertices_flat;  // vertex pos and face normal
+    vector<glm::mat4> transforms;  // transform matrices for each copy of the objects
     TEXTURE  texture;
     FACES     faces;
+    glm::vec4 ambient_product, diffuse_product, specular_product;
     /* Constructor */
     MESH();
-    void bind();
-    void bind_flat();
-    void bind_other();
-    void get_render_data(GLuint& vao, GLuint&vbo, GLuint& ebo);
+    void setup(GLuint shader, LIGHT& THE_LIGHT);
+    void bind_flat(GLuint shader);
+    void bind_other(GLuint shader);
+    void get_render_data(GLuint& vao, GLuint& vbo_flat, GLuint& vbo_other, GLuint& ebo);
     void compute_face_normal();
     void compute_vertex_normal();
+    void compute_light_product(LIGHT& THE_LIGHT);
+    void draw(GLuint shader, glm::mat4& PROJ_MAT, glm::mat4& MV_MAT);
   private:
-    GLuint vao, vbo, ebo;
+    GLuint vao, vbo_flat, vbo_other, ebo;
 };
 
  // in vbos
@@ -74,34 +94,18 @@ class MESH {
   // Texture Lighting: if no change intended, can be set in shader
   // Can compute normal/angles in GLSL
 
-  /* 
-	 Light Source
-	 1. position
-	 2. direction
-	 3. intensity
-  */
-typedef struct _light{
- // using light
- glm::vec4 diffuse0 = glm::vec4(1.0, 1.0, 1.0, 1.0);
- glm::vec4 ambient0 = glm::vec4(1.0, 1.0, 1.0, 1.0);
- glm::vec4 specular0 = glm::vec4(1.0, 1.0, 1.0, 1.0);
- glm::vec4 light0;
- glm::vec4 dropoff_coeff = glm::vec4(0.1, 0.1, 0.1, 0.1); //a, b, c, d
- bool point;
-} LIGHT;
-
 
 /* Bling-Phong model
    halfway vector: h = (l+v)/ |l+v|
    1. substitute r*v with n*h, in order to avoid calculating r (perfect reflection) 
    2. weaken specular -> compensate with a smaller alpha  */
 
-void read_mesh(string filename, MESH& mesh,
-               glm::vec3& max_xyz,
-               glm::vec3& min_xyz);
-void read_all_meshes(vector<string>& filenames, vector<MESH>& all_meshes,
-                     glm::vec3& max_xyz,
-                     glm::vec3& min_xyz);
+void read_mesh(string filename, MESH& mesh, int count,
+               glm::vec3& max_xyz, glm::vec3& min_xyz,
+               GLuint shader, LIGHT& THE_LIGHT);
+void read_all_meshes(map<string, int>& filenames, vector<MESH>& all_meshes,
+                     glm::vec3& max_xyz, glm::vec3& min_xyz,
+                     GLuint shader, LIGHT& THE_LIGHT);
 void print_mesh_info(MESH& mesh);
 void load_texture(MESH& mesh, const GLfloat* texture);
 void load_random_texture(vector<MESH>& all_meshes);

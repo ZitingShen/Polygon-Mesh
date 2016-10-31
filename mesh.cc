@@ -6,13 +6,13 @@ int WIDTH, HEIGHT;
 int IS_PAUSED = GLFW_FALSE;
 int PAUSE_TIME = 0;
 p_mode PROJ_MODE = PERSPECTIVE;
-s_mode SHADING_MODE = SMOOTH;
 d_mode DRAW_MODE = FACE;
 glm::mat4 PROJ_MAT, MV_MAT;
 glm::vec3 MIN_XYZ, MAX_XYZ, CURRENT_MIN, CURRENT_MAX;
-glm::vec3 LIGHT_POSITION;
-vector<string> FILE_NAMES;
+LIGHT THE_LIGHT;
+map<string, int> FILE_NAMES;
 vector<MESH> MESHES;
+GLuint SHADER, flat_shader, gourand_shader, phong_shader;
 
 int main(int argc, char *argv[]){
   if (!glfwInit ()) {
@@ -36,10 +36,17 @@ int main(int argc, char *argv[]){
   glewExperimental = GL_TRUE;
   glewInit();
 
-  for (int i = 1; i < argc; i++)
-    FILE_NAMES.push_back(string(argv[i]));
-  read_all_meshes(FILE_NAMES, MESHES, MAX_XYZ, MIN_XYZ);
+  for (int i = 1; i < argc; i++) {
+    string new_file(argv[i]);
+    if (FILE_NAMES.find(new_file) != FILE_NAMES.end())
+      FILE_NAMES[new_file] = 1;
+    else
+      FILE_NAMES[new_file]++;
+  }
   init(window);
+  read_all_meshes(FILE_NAMES, MESHES, MAX_XYZ, MIN_XYZ, SHADER, THE_LIGHT);
+  MESHES.reserve(FILE_NAMES.size());
+  MESHES.resize(FILE_NAMES.size());
 
   glfwMakeContextCurrent(window);
   glfwSetWindowSizeCallback(window, reshape);
@@ -55,7 +62,9 @@ int main(int argc, char *argv[]){
     glfwPollEvents();
 
     if(glfwGetWindowAttrib(window, GLFW_VISIBLE)){
-      draw_mesh();
+      for (auto itr_mesh = MESHES.begin(); itr_mesh != MESHES.end(); itr_mesh++) {
+        itr_mesh->draw(SHADER, PROJ_MAT, MV_MAT);
+      }
       glfwSwapBuffers(window);
     }
 
@@ -75,16 +84,19 @@ void init(GLFWwindow* window) {
   glClearColor(0, 0, 0, 1.0);
   glColor3f(0.0, 0.0, 0.0);
 
-  load_random_texture(MESHES);
+  //load_random_texture(MESHES);
   CURRENT_MIN = MIN_XYZ;
   CURRENT_MAX = MAX_XYZ;
-  LIGHT_POSITION = glm::vec3(MAX_XYZ[0], 
-                             MIN_XYZ[1]*2-MAX_XYZ[1], 
-                             MAX_XYZ[2]*2-MIN_XYZ[2]);
+  THE_LIGHT.light0 = glm::vec4(MAX_XYZ[0], 
+                               MIN_XYZ[1]*2-MAX_XYZ[1], 
+                               MAX_XYZ[2]*2-MIN_XYZ[2],
+                               0);
   change_perspective(window);
   change_view();
-  //interleave();
-  //bindData();
+
+  //flat_shader = initshader("flat_vs.glsl", "flat_fs.glsl");
+  gourand_shader = initshader("gouraud_vs.glsl", "gouraud_fs.glsl");
+  phong_shader = initshader("phong_vs.glsl", "phong_fs.glsl");
 }
 
 void framebuffer_resize(GLFWwindow* window, int width, int height) {
@@ -126,15 +138,21 @@ void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods) {
       break;
 
       case GLFW_KEY_S:
-      SHADING_MODE = FLAT;
+      SHADER = flat_shader;
+      for (auto itr_mesh = MESHES.begin(); itr_mesh != MESHES.end(); itr_mesh++)
+        itr_mesh->bind_flat(SHADER);
       break;
 
       case GLFW_KEY_F:
-      SHADING_MODE = SMOOTH;
+      SHADER = gourand_shader;
+      for (auto itr_mesh = MESHES.begin(); itr_mesh != MESHES.end(); itr_mesh++)
+        itr_mesh->bind_other(SHADER);
       break;
 
       case GLFW_KEY_D:
-      SHADING_MODE = PHONG;
+      SHADER = phong_shader;
+      for (auto itr_mesh = MESHES.begin(); itr_mesh != MESHES.end(); itr_mesh++)
+        itr_mesh->bind_flat(SHADER);
       break;
 
       case GLFW_KEY_UP: {
@@ -174,14 +192,6 @@ void mouse(GLFWwindow* window, int button, int action, int mods) {
   }
 }
 
-static GLuint make_bo(GLenum type, const void *buf, GLsizei buf_size) {
-  GLuint bufnum;
-  glGenBuffers(1, &bufnum);
-  glBindBuffer(type, bufnum);
-  glBufferData(type, buf_size, buf, GL_STATIC_DRAW);
-  return bufnum;
-}
-
 void change_perspective(GLFWwindow* window) {
   if (PROJ_MODE == PARALLEL) {
     PROJ_MAT = glm::ortho(MIN_XYZ[0], MAX_XYZ[0],
@@ -201,9 +211,6 @@ void change_view() {
   glm::vec3 eye = glm::vec3(center[0] + diff[0]*INITIAL_X_DISPLACEMENT, 
                 MIN_XYZ[1] - diff[1]*INITIAL_Y_DISPLACEMENT, MAX_XYZ[2]);
   MV_MAT = glm::lookAt(eye, center, glm::vec3(0, 0, 1));
-}
-
-void draw_mesh() {
 }
 
 void print() {

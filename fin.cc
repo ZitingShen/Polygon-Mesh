@@ -1,70 +1,92 @@
 #include "fin.h"
 
+static GLuint make_bo(GLenum type, const void *buf, GLsizei buf_size) {
+  GLuint bufnum;
+  glGenBuffers(1, &bufnum);
+  glBindBuffer(type, bufnum);
+  glBufferData(type, buf_size, buf, GL_STATIC_DRAW);
+  return bufnum;
+}
+
 MESH::MESH(){
   this->num_v = 0;
   this->num_f = 0;
   this->num_e = 0;
 }
 
-void MESH::bind(){
+void MESH::setup(GLuint shader, LIGHT& THE_LIGHT){
   // bind vao
   cout << this->vao << endl;
     cout << "got here " << endl;
   glGenVertexArrays(1, &this->vao);
   glBindVertexArray(this->vao);
 
-  // bind vbo
-  glGenBuffers(1, &this->vbo);
-  glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
-  glBufferData(GL_ARRAY_BUFFER,
-               this->vertices.size()*sizeof(VERTEX),
-               &this->vertices[0], GL_STATIC_DRAW);
+  GLuint light = glGetUniformLocation(shader, "LightPosition");
+  GLuint ambient = glGetUniformLocation(shader, "AmbientProduct");
+  GLuint diffuse = glGetUniformLocation(shader, "DiffuseProduct");
+  GLuint specular = glGetUniformLocation(shader, "SpecularProduct");
+  GLuint shineness = glGetUniformLocation(shader, "Shineness");
+  glUniform4fv(light, 1, glm::value_ptr(THE_LIGHT.light0));
+  glUniform4fv(ambient, 1, glm::value_ptr(this->ambient_product));
+  glUniform4fv(diffuse, 1, glm::value_ptr(this->diffuse_product));
+  glUniform4fv(specular, 1, glm::value_ptr(this->specular_product));
+  glUniform1f(shineness, this->texture.shineness);
 
-  //bind ebo
-  glGenBuffers(1, &this->ebo);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ebo);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-               this->faces.draw_indices.size()*sizeof(GLuint),
-               &this->faces.draw_indices[0],
-               GL_STATIC_DRAW);
+  // generate vbo
+  this->vbo_other = make_bo(GL_ARRAY_BUFFER, &this->vertices[0], 
+    this->vertices.size()*sizeof(VERTEX));
+  this->vbo_flat = make_bo(GL_ARRAY_BUFFER, &this->vertices_flat[0], 
+    this->vertices.size()*sizeof(VERTEX));
+  bind_other(shader);
 
-  // Vertex Positions
-  glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 3, GL_FLOAT,
-                        GL_FALSE,
-                        sizeof(VERTEX),
-                        (GLvoid*)0);
-  // Vertex Normals
-  glEnableVertexAttribArray(1);
-  glVertexAttribPointer(1, 3, GL_FLOAT,
-                        GL_FALSE,
-                        sizeof(VERTEX),
-                        (GLvoid*)offsetof(VERTEX, normal));
-
+  //generate ebo
+  this->ebo = make_bo(GL_ELEMENT_ARRAY_BUFFER, &this->faces.draw_indices[0],
+    this->faces.draw_indices.size()*sizeof(GLuint));
   glBindVertexArray(0);
 }
 
-void MESH::bind_flat(){
+void MESH::bind_flat(GLuint shader){
   // bind vbo
-  glGenBuffers(1, &this->vbo);
-  glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
-  glBufferData(GL_ARRAY_BUFFER,
-               this->vertices_flat.size()*sizeof(VERTEX),
-               &this->vertices_flat[0], GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, this->vbo_flat);
+  GLuint pos = glGetAttribLocation(shader, "vPosition");
+  glEnableVertexAttribArray(pos);
+  glVertexAttribPointer(pos, 3, GL_FLOAT,
+                        GL_FALSE,
+                        sizeof(VERTEX),
+                        (GLvoid*)0);
+
+  // Vertex Normals
+  GLuint normal = glGetAttribLocation(shader, "vNormal");
+  glEnableVertexAttribArray(normal);
+  glVertexAttribPointer(normal, 3, GL_FLOAT,
+                        GL_FALSE,
+                        sizeof(VERTEX),
+                        (GLvoid*)offsetof(VERTEX, normal));
 }
 
-void MESH::bind_other(){
+void MESH::bind_other(GLuint shader){
   // bind vbo
-  glGenBuffers(1, &this->vbo);
-  glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
-  glBufferData(GL_ARRAY_BUFFER,
-               this->vertices.size()*sizeof(VERTEX),
-               &this->vertices[0], GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, this->vbo_other);
+  GLuint pos = glGetAttribLocation(shader, "vPosition");
+  glEnableVertexAttribArray(pos);
+  glVertexAttribPointer(pos, 3, GL_FLOAT,
+                        GL_FALSE,
+                        sizeof(VERTEX),
+                        (GLvoid*)0);
+
+  // Vertex Normals
+  GLuint normal = glGetAttribLocation(shader, "vNormal");
+  glEnableVertexAttribArray(normal);
+  glVertexAttribPointer(normal, 3, GL_FLOAT,
+                        GL_FALSE,
+                        sizeof(VERTEX),
+                        (GLvoid*)offsetof(VERTEX, normal));
 }
 
-void MESH::get_render_data(GLuint& vao, GLuint&vbo, GLuint& ebo){
+void MESH::get_render_data(GLuint& vao, GLuint& vbo_flat, GLuint& vbo_other, GLuint& ebo){
   vao = this->vao;
-  vbo = this->vbo;
+  vbo_flat = this->vbo_flat;
+  vbo_other = this->vbo_other;
   ebo = this->ebo;
 }
 
@@ -123,9 +145,26 @@ void MESH::compute_vertex_normal(){
   }
 }
 
-void read_mesh(string filename, MESH& mesh,
-               glm::vec3& max_xyz,
-               glm::vec3& min_xyz){
+void MESH::compute_light_product(LIGHT& THE_LIGHT) {
+  this->ambient_product = glm::vec4(
+                this->texture.ambient[0]*THE_LIGHT.ambient0[0],
+                this->texture.ambient[1]*THE_LIGHT.ambient0[1],
+                this->texture.ambient[2]*THE_LIGHT.ambient0[2], 0.0f);
+
+  this->diffuse_product = glm::vec4(
+                this->texture.diffuse[0]*THE_LIGHT.diffuse0[0],
+                this->texture.diffuse[1]*THE_LIGHT.diffuse0[1],
+                this->texture.diffuse[2]*THE_LIGHT.diffuse0[2], 0.0f);
+
+  this->specular_product = glm::vec4(
+                this->texture.specular[0]*THE_LIGHT.specular0[0],
+                this->texture.specular[1]*THE_LIGHT.specular0[1],
+                this->texture.specular[2]*THE_LIGHT.specular0[2], 0.0f);
+}
+
+void read_mesh(string filename, MESH& mesh, int count,
+               glm::vec3& max_xyz, glm::vec3& min_xyz,
+               GLuint shader, LIGHT& THE_LIGHT){
   glm::vec3 holder;
   vector<GLubyte> holder_indices;
   string off;
@@ -188,24 +227,31 @@ void read_mesh(string filename, MESH& mesh,
     }
   }
   my_fin.close();
+  for (int i = 0; i < count; i++) {
+    mesh.transforms.push_back(glm::mat4());
+  }
+  load_texture(mesh, material_props[MAT_DEFAULT]);
+  mesh.compute_light_product(THE_LIGHT);
   mesh.compute_face_normal();
   mesh.compute_vertex_normal();
-
-  mesh.bind();
+  mesh.setup(shader, THE_LIGHT);
 }
 
-void read_all_meshes(vector<string>& filenames, vector<MESH>& all_meshes,
-                     glm::vec3& max_xyz,
-                     glm::vec3& min_xyz){
+void read_all_meshes(map<string, int>& filenames, vector<MESH>& all_meshes,
+                     glm::vec3& max_xyz, glm::vec3& min_xyz,
+                     GLuint shader, LIGHT& THE_LIGHT){
   max_xyz[0] = -FLT_MAX;
   max_xyz[1] = -FLT_MAX;
   max_xyz[2] = -FLT_MAX;
   min_xyz[0] = FLT_MAX;
   min_xyz[1] = FLT_MAX;
   min_xyz[2] = FLT_MAX;
-  for (int i=0; i<(int)filenames.size(); i++){
+  auto itr_mesh = all_meshes.begin();
+  for (auto itr_file = filenames.begin(); itr_file != filenames.end(); itr_file++){
     //cout << "reading " << filenames[i] << endl;
-    read_mesh(filenames[i], all_meshes[i], max_xyz, min_xyz);
+    read_mesh(itr_file->first, *itr_mesh, itr_file->second, max_xyz, min_xyz,
+              shader, THE_LIGHT);
+    itr_mesh++;
   }
 }
 
@@ -270,4 +316,17 @@ void load_random_texture(vector<MESH>& all_meshes){
   for (int i=0; i<(int)all_meshes.size(); i++){
     load_texture(all_meshes[i], material_props[MAT_DEFAULT]);
   }
+}
+
+void MESH::draw(GLuint shader, glm::mat4& PROJ_MAT, glm::mat4& MV_MAT) {
+  glUseProgram(shader);
+  glBindVertexArray(this->vao);
+
+  GLuint proj = glGetUniformLocation(shader, "Projection");
+  glUniformMatrix4fv(proj, 1, GL_FALSE, glm::value_ptr(PROJ_MAT));
+  GLuint mv = glGetUniformLocation(shader, "ModelView");
+  glUniformMatrix4fv(mv, 1, GL_FALSE, glm::value_ptr(MV_MAT));
+
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ebo);
+  glDrawElements(GL_TRIANGLES, this->faces.draw_indices.size(), GL_UNSIGNED_INT, (void*) 0);
 }
