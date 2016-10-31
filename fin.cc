@@ -16,8 +16,6 @@ MESH::MESH(){
 
 void MESH::setup(GLuint shader, LIGHT& THE_LIGHT){
   // bind vao
-  cout << this->vao << endl;
-    cout << "got here " << endl;
   glGenVertexArrays(1, &this->vao);
   glBindVertexArray(this->vao);
 
@@ -246,12 +244,12 @@ void read_all_meshes(map<string, int>& filenames, vector<MESH>& all_meshes,
   min_xyz[0] = FLT_MAX;
   min_xyz[1] = FLT_MAX;
   min_xyz[2] = FLT_MAX;
-  auto itr_mesh = all_meshes.begin();
+  int i = 0;
   for (auto itr_file = filenames.begin(); itr_file != filenames.end(); itr_file++){
     //cout << "reading " << filenames[i] << endl;
-    read_mesh(itr_file->first, *itr_mesh, itr_file->second, max_xyz, min_xyz,
+    read_mesh(itr_file->first, all_meshes[i], itr_file->second, max_xyz, min_xyz,
               shader, THE_LIGHT);
-    itr_mesh++;
+    i++;
   }
 }
 

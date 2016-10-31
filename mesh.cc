@@ -44,9 +44,9 @@ int main(int argc, char *argv[]){
       FILE_NAMES[new_file]++;
   }
   init(window);
-  read_all_meshes(FILE_NAMES, MESHES, MAX_XYZ, MIN_XYZ, SHADER, THE_LIGHT);
   MESHES.reserve(FILE_NAMES.size());
   MESHES.resize(FILE_NAMES.size());
+  read_all_meshes(FILE_NAMES, MESHES, MAX_XYZ, MIN_XYZ, SHADER, THE_LIGHT);
 
   glfwMakeContextCurrent(window);
   glfwSetWindowSizeCallback(window, reshape);
