@@ -11,9 +11,6 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
-typedef enum _p_mode{PARALLEL, PERSPECTIVE} p_mode;
-typedef enum _d_mode{VERTEX, EDGE, FACE} d_mode;
-
 void init(GLFWwindow* window);
 void reshape(GLFWwindow* window, int w, int h);
 void framebuffer_resize(GLFWwindow* window, int width, int height);

@@ -13,16 +13,20 @@
 
 #include <time.h>
 #include <glm/glm.hpp>
+#include <glm/gtx/string_cast.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 #define RADIAN_TO_DEGREE          57.29578f // 180 over pi
 #define	DEGREE_TO_RADIAN		      0.00873f
 
-#define CAMERA_NEAR               2.0f
+#define CAMERA_NEAR               1.0f
 #define CAMERA_FAR                100000000.0f
 #define ZOOM_STEP_RATIO			      0.05f
-#define INITIAL_X_DISPLACEMENT    0.2f
-#define INITIAL_Y_DISPLACEMENT    0.5f
+#define INITIAL_X_DISPLACEMENT    0.7f
+#define INITIAL_Y_DISPLACEMENT    0.8f
+
+#define POS_LOCATION              0
+#define NORMAL_LOCATION           1
 
 static GLfloat material_props[][10] = {
   {0.2, 0.2, 0.2, 0.8, 0.8, 0.8, 0.0, 0.0, 0.0, 0.0},

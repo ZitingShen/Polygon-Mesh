@@ -7,8 +7,12 @@
 #include <map>
 #include <cstring>
 #include "common.h"
+#include "glm/gtx/transform.hpp"
 
 using namespace std;
+
+typedef enum _p_mode{PARALLEL, PERSPECTIVE} p_mode;
+typedef enum _d_mode{POINT, EDGE, FACE} d_mode;
 
   /* 
    Light Source
@@ -58,14 +62,17 @@ class MESH {
     glm::vec4 ambient_product, diffuse_product, specular_product;
     /* Constructor */
     MESH();
-    void setup(GLuint shader, LIGHT& THE_LIGHT);
+    void setup(GLuint shader);
     void bind_flat(GLuint shader);
     void bind_other(GLuint shader);
-    void get_render_data(GLuint& vao, GLuint& vbo_flat, GLuint& vbo_other, GLuint& ebo);
+    void get_render_data(GLuint& vao, GLuint& vbo_flat, GLuint& vbo_other, 
+      GLuint& ebo);
     void compute_face_normal();
     void compute_vertex_normal();
     void compute_light_product(LIGHT& THE_LIGHT);
-    void draw(GLuint shader, glm::mat4& PROJ_MAT, glm::mat4& MV_MAT);
+    void draw(GLuint shader, glm::mat4& PROJ_MAT, glm::mat4& MV_MAT, 
+      LIGHT& THE_LIGHT, d_mode DRAW_MODE);
+    void rotate();
   private:
     GLuint vao, vbo_flat, vbo_other, ebo;
 };
@@ -102,10 +109,10 @@ class MESH {
 
 void read_mesh(string filename, MESH& mesh, int count,
                glm::vec3& max_xyz, glm::vec3& min_xyz,
-               GLuint shader, LIGHT& THE_LIGHT);
+               GLuint shader);
 void read_all_meshes(map<string, int>& filenames, vector<MESH>& all_meshes,
                      glm::vec3& max_xyz, glm::vec3& min_xyz,
-                     GLuint shader, LIGHT& THE_LIGHT);
+                     GLuint shader);
 void print_mesh_info(MESH& mesh);
 void load_texture(MESH& mesh, const GLfloat* texture);
 void load_random_texture(vector<MESH>& all_meshes);

@@ -14,49 +14,36 @@ MESH::MESH(){
   this->num_e = 0;
 }
 
-void MESH::setup(GLuint shader, LIGHT& THE_LIGHT){
+void MESH::setup(GLuint shader){
   // bind vao
   glGenVertexArrays(1, &this->vao);
   glBindVertexArray(this->vao);
-
-  GLuint light = glGetUniformLocation(shader, "LightPosition");
-  GLuint ambient = glGetUniformLocation(shader, "AmbientProduct");
-  GLuint diffuse = glGetUniformLocation(shader, "DiffuseProduct");
-  GLuint specular = glGetUniformLocation(shader, "SpecularProduct");
-  GLuint shineness = glGetUniformLocation(shader, "Shineness");
-  glUniform4fv(light, 1, glm::value_ptr(THE_LIGHT.light0));
-  glUniform4fv(ambient, 1, glm::value_ptr(this->ambient_product));
-  glUniform4fv(diffuse, 1, glm::value_ptr(this->diffuse_product));
-  glUniform4fv(specular, 1, glm::value_ptr(this->specular_product));
-  glUniform1f(shineness, this->texture.shineness);
 
   // generate vbo
   this->vbo_other = make_bo(GL_ARRAY_BUFFER, &this->vertices[0], 
     this->vertices.size()*sizeof(VERTEX));
   this->vbo_flat = make_bo(GL_ARRAY_BUFFER, &this->vertices_flat[0], 
     this->vertices.size()*sizeof(VERTEX));
-  bind_other(shader);
-
   //generate ebo
   this->ebo = make_bo(GL_ELEMENT_ARRAY_BUFFER, &this->faces.draw_indices[0],
     this->faces.draw_indices.size()*sizeof(GLuint));
-  glBindVertexArray(0);
+  bind_other(shader);
 }
 
 void MESH::bind_flat(GLuint shader){
   // bind vbo
   glBindBuffer(GL_ARRAY_BUFFER, this->vbo_flat);
-  GLuint pos = glGetAttribLocation(shader, "vPosition");
-  glEnableVertexAttribArray(pos);
-  glVertexAttribPointer(pos, 3, GL_FLOAT,
+  glBindAttribLocation(shader, POS_LOCATION, "vPosition");
+  glEnableVertexAttribArray(POS_LOCATION);
+  glVertexAttribPointer(POS_LOCATION, 3, GL_FLOAT,
                         GL_FALSE,
                         sizeof(VERTEX),
                         (GLvoid*)0);
 
   // Vertex Normals
-  GLuint normal = glGetAttribLocation(shader, "vNormal");
-  glEnableVertexAttribArray(normal);
-  glVertexAttribPointer(normal, 3, GL_FLOAT,
+  glBindAttribLocation(shader, NORMAL_LOCATION, "vNormal");
+  glEnableVertexAttribArray(NORMAL_LOCATION);
+  glVertexAttribPointer(NORMAL_LOCATION, 3, GL_FLOAT,
                         GL_FALSE,
                         sizeof(VERTEX),
                         (GLvoid*)offsetof(VERTEX, normal));
@@ -64,18 +51,19 @@ void MESH::bind_flat(GLuint shader){
 
 void MESH::bind_other(GLuint shader){
   // bind vbo
+  glUseProgram(shader);
   glBindBuffer(GL_ARRAY_BUFFER, this->vbo_other);
-  GLuint pos = glGetAttribLocation(shader, "vPosition");
-  glEnableVertexAttribArray(pos);
-  glVertexAttribPointer(pos, 3, GL_FLOAT,
+  glBindAttribLocation(shader, POS_LOCATION, "vPosition");
+  glEnableVertexAttribArray(POS_LOCATION);
+  glVertexAttribPointer(POS_LOCATION, 3, GL_FLOAT,
                         GL_FALSE,
                         sizeof(VERTEX),
                         (GLvoid*)0);
 
   // Vertex Normals
-  GLuint normal = glGetAttribLocation(shader, "vNormal");
-  glEnableVertexAttribArray(normal);
-  glVertexAttribPointer(normal, 3, GL_FLOAT,
+  glBindAttribLocation(shader, NORMAL_LOCATION, "vNormal");
+  glEnableVertexAttribArray(NORMAL_LOCATION);
+  glVertexAttribPointer(NORMAL_LOCATION, 3, GL_FLOAT,
                         GL_FALSE,
                         sizeof(VERTEX),
                         (GLvoid*)offsetof(VERTEX, normal));
@@ -100,24 +88,28 @@ void MESH::compute_face_normal(){
                       - this->vertices[ this->faces.draw_indices[count + 1] ].pos );
     this->faces.normal.push_back(glm::normalize(normal));
     count += 3; // moving to the next face
+    //cout << normal[0] << " "
+    //     << normal[1] << " "
+    //     << normal[2] << " " << endl;
   }
 }
 
 void MESH::compute_vertex_normal(){
-  vector<vector<int> > faces_per_vertex(this->num_v, vector<int>());
+  vector<vector<int>> faces_per_vertex(this->num_v, vector<int>());
   glm::vec3 normal(0, 0, 0);
   int num_triangles = this->faces.draw_indices.size() / 3;
   int count = 0;
   for (int i=0; i<num_triangles; i++){  // which face we are looking at
     for (int j=0; j<3; j++){  // all vertices in this face
       //cout << this->faces.num_v[i] << endl;
-      faces_per_vertex[ this->faces.draw_indices[count] ].push_back(i);
+      faces_per_vertex[this->faces.draw_indices[count]].push_back(i);
       count++;
     }
   }
-//    for (auto k = faces_per_vertex[2].begin(); k != faces_per_vertex[2].end(); k++)
-//    cout << (*k) << ' ';
-//    cout << endl;
+  //for (int i=0; i<(int)this->num_v; i++)
+  //for (auto k = faces_per_vertex[i].begin(); k != faces_per_vertex[i].end(); k++)
+  //  cout << (*k) << ' ';
+  //  cout << endl;
   count = 0;
   for (int i=0; i<(int)this->num_v; i++){
     for (int j=0; j<(int)faces_per_vertex[i].size(); j++){
@@ -128,10 +120,13 @@ void MESH::compute_vertex_normal(){
     this->vertices[i].normal[1] = normal[1];
     this->vertices[i].normal[2] = normal[2];
     normal = glm::vec3(0, 0, 0);
-//    cout << this->vertices.normal[i][0] << " "
-//         << this->vertices.normal[i][1] << " "
-//         << this->vertices.normal[i][2] << " " << endl;
+    /*
+    cout << this->vertices[i].normal[0] << " "
+         << this->vertices[i].normal[1] << " "
+         << this->vertices[i].normal[2] << " " << endl;
+         */
   }
+
   this->vertices_flat.reserve(this->faces.normal.size()*3);
   this->vertices_flat.resize(this->faces.normal.size()*3);
   for (int i=0; i<(int)this->faces.normal.size(); i++){
@@ -147,22 +142,23 @@ void MESH::compute_light_product(LIGHT& THE_LIGHT) {
   this->ambient_product = glm::vec4(
                 this->texture.ambient[0]*THE_LIGHT.ambient0[0],
                 this->texture.ambient[1]*THE_LIGHT.ambient0[1],
-                this->texture.ambient[2]*THE_LIGHT.ambient0[2], 0.0f);
+                this->texture.ambient[2]*THE_LIGHT.ambient0[2], 1.0f);
 
   this->diffuse_product = glm::vec4(
                 this->texture.diffuse[0]*THE_LIGHT.diffuse0[0],
                 this->texture.diffuse[1]*THE_LIGHT.diffuse0[1],
-                this->texture.diffuse[2]*THE_LIGHT.diffuse0[2], 0.0f);
+                this->texture.diffuse[2]*THE_LIGHT.diffuse0[2], 1.0f);
 
   this->specular_product = glm::vec4(
                 this->texture.specular[0]*THE_LIGHT.specular0[0],
                 this->texture.specular[1]*THE_LIGHT.specular0[1],
-                this->texture.specular[2]*THE_LIGHT.specular0[2], 0.0f);
+                this->texture.specular[2]*THE_LIGHT.specular0[2], 1.0f);
+  //cout << glm::to_string(ambient_product) << endl;
 }
 
 void read_mesh(string filename, MESH& mesh, int count,
                glm::vec3& max_xyz, glm::vec3& min_xyz,
-               GLuint shader, LIGHT& THE_LIGHT){
+               GLuint shader){
   glm::vec3 holder;
   vector<GLubyte> holder_indices;
   string off;
@@ -172,12 +168,12 @@ void read_mesh(string filename, MESH& mesh, int count,
   my_fin.open(filename);
   if (!my_fin.is_open()){
     cerr << "READ_MESH: CAN NOT OPEN FILE: " << filename <<endl;
-    return;
+    exit(1);
   }
   getline(my_fin, off);
   if (off.compare("OFF") != 0){
     cerr << "READ_MESH: NOT AN OFF FILE: " << filename <<endl;
-    return;
+    exit(1);
   }
   /* reading attributs */
   my_fin >> mesh.num_v;
@@ -228,16 +224,15 @@ void read_mesh(string filename, MESH& mesh, int count,
   for (int i = 0; i < count; i++) {
     mesh.transforms.push_back(glm::mat4());
   }
-  load_texture(mesh, material_props[MAT_DEFAULT]);
-  mesh.compute_light_product(THE_LIGHT);
+  load_texture(mesh, material_props[MAT_TURQUOISE]);
   mesh.compute_face_normal();
   mesh.compute_vertex_normal();
-  mesh.setup(shader, THE_LIGHT);
+  mesh.setup(shader);
 }
 
 void read_all_meshes(map<string, int>& filenames, vector<MESH>& all_meshes,
                      glm::vec3& max_xyz, glm::vec3& min_xyz,
-                     GLuint shader, LIGHT& THE_LIGHT){
+                     GLuint shader){
   max_xyz[0] = -FLT_MAX;
   max_xyz[1] = -FLT_MAX;
   max_xyz[2] = -FLT_MAX;
@@ -248,7 +243,7 @@ void read_all_meshes(map<string, int>& filenames, vector<MESH>& all_meshes,
   for (auto itr_file = filenames.begin(); itr_file != filenames.end(); itr_file++){
     //cout << "reading " << filenames[i] << endl;
     read_mesh(itr_file->first, all_meshes[i], itr_file->second, max_xyz, min_xyz,
-              shader, THE_LIGHT);
+              shader);
     i++;
   }
 }
@@ -316,7 +311,20 @@ void load_random_texture(vector<MESH>& all_meshes){
   }
 }
 
-void MESH::draw(GLuint shader, glm::mat4& PROJ_MAT, glm::mat4& MV_MAT) {
+void MESH::draw(GLuint shader, glm::mat4& PROJ_MAT, glm::mat4& MV_MAT, 
+  LIGHT& THE_LIGHT, d_mode DRAW_MODE) {
+
+  GLuint ambient = glGetUniformLocation(shader, "AmbientProduct");
+  GLuint diffuse = glGetUniformLocation(shader, "DiffuseProduct");
+  GLuint specular = glGetUniformLocation(shader, "SpecularProduct");
+  GLuint shineness = glGetUniformLocation(shader, "Shineness");
+  GLuint light = glGetUniformLocation(shader, "LightPosition");
+  glUniform4fv(light, 1, glm::value_ptr(THE_LIGHT.light0));
+  glUniform4fv(ambient, 1, glm::value_ptr(this->ambient_product));
+  glUniform4fv(diffuse, 1, glm::value_ptr(this->diffuse_product));
+  glUniform4fv(specular, 1, glm::value_ptr(this->specular_product));
+  glUniform1f(shineness, this->texture.shineness);
+
   glUseProgram(shader);
   glBindVertexArray(this->vao);
 
@@ -324,7 +332,46 @@ void MESH::draw(GLuint shader, glm::mat4& PROJ_MAT, glm::mat4& MV_MAT) {
   glUniformMatrix4fv(proj, 1, GL_FALSE, glm::value_ptr(PROJ_MAT));
   GLuint mv = glGetUniformLocation(shader, "ModelView");
   glUniformMatrix4fv(mv, 1, GL_FALSE, glm::value_ptr(MV_MAT));
+  //TODO
+  GLuint trans = glGetUniformLocation(shader, "Transformation");
+  glUniformMatrix4fv(trans, 1, GL_FALSE, glm::value_ptr(this->transforms[0]));
+
+
+  //glm::vec3 pos(MV_MAT*this->transforms[0]*glm::vec4(this->vertices[1].pos, 1));
+  //glm::vec3 pos_light(MV_MAT*THE_LIGHT.light0);
+  //glm::vec3 L = glm::normalize(pos_light - pos);
+  //glm::vec3 N(glm::normalize(MV_MAT*this->transforms[0]*glm::vec4(this->vertices[1].normal, 0.0)));
+  //cout << glm::to_string(L) << endl;
+  //cout << glm::to_string(N) << endl;
+  //cout << glm::dot(L, N) << endl;
 
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ebo);
-  glDrawElements(GL_TRIANGLES, this->faces.draw_indices.size(), GL_UNSIGNED_INT, (void*) 0);
+  switch(DRAW_MODE) {
+    case FACE:
+      glDrawElements(GL_TRIANGLES, this->faces.draw_indices.size(), 
+        GL_UNSIGNED_INT, (void*) 0);
+      break;
+
+    case POINT:
+      glDrawElements(GL_POINTS, this->faces.draw_indices.size(), 
+        GL_UNSIGNED_INT, (void*) 0);
+      break;
+
+    case EDGE: //TODO
+      glDrawElements(GL_TRIANGLES, this->faces.draw_indices.size(), 
+        GL_UNSIGNED_INT, (void*) 0);
+      break;
+
+    default:
+      break;
+  }
+  glBindVertexArray(0);
+}
+
+void MESH::rotate() {
+  for (auto transform = transforms.begin(); transform != transforms.end();
+    transform++) {
+    *transform = glm::rotate(*transform, 1*DEGREE_TO_RADIAN, 
+      glm::vec3(0.0f, 1.0f, 0.0f));
+  }
 }
