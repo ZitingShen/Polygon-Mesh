@@ -25,8 +25,10 @@ void MESH::setup(GLuint shader){
   this->vbo_flat = make_bo(GL_ARRAY_BUFFER, &this->vertices_flat[0], 
     this->vertices.size()*sizeof(VERTEX));
   //generate ebo
-  this->ebo = make_bo(GL_ELEMENT_ARRAY_BUFFER, &this->faces.draw_indices[0],
-    this->faces.draw_indices.size()*sizeof(GLuint));
+  this->ebo_other = make_bo(GL_ELEMENT_ARRAY_BUFFER, &this->faces.draw_indices[0],
+    this->faces.draw_indices.size()*sizeof(GLushort));
+  this->ebo_edge = make_bo(GL_ELEMENT_ARRAY_BUFFER, &this->faces.edge_indices[0],
+    this->faces.edge_indices.size()*sizeof(GLushort));
   bind_other(shader);
 }
 
@@ -67,13 +69,6 @@ void MESH::bind_other(GLuint shader){
                         GL_FALSE,
                         sizeof(VERTEX),
                         (GLvoid*)offsetof(VERTEX, normal));
-}
-
-void MESH::get_render_data(GLuint& vao, GLuint& vbo_flat, GLuint& vbo_other, GLuint& ebo){
-  vao = this->vao;
-  vbo_flat = this->vbo_flat;
-  vbo_other = this->vbo_other;
-  ebo = this->ebo;
 }
 
 void MESH::compute_face_normal(){
@@ -163,7 +158,7 @@ void read_mesh(string filename, MESH& mesh, int count,
   vector<GLubyte> holder_indices;
   string off;
   int vec_in_fac;
-  int temp;
+  int temp, temp_first;
   ifstream my_fin;
   my_fin.open(filename);
   if (!my_fin.is_open()){
@@ -203,15 +198,31 @@ void read_mesh(string filename, MESH& mesh, int count,
     if (vec_in_fac == 3){
       for (int j=0; j<vec_in_fac;j++){
         my_fin >> temp;
-        mesh.faces.indices.push_back(temp);
         mesh.faces.draw_indices.push_back(temp);
+
+        if (j == 0) {
+          mesh.faces.edge_indices.push_back(temp);
+          temp_first = temp;
+        } else {
+          mesh.faces.edge_indices.push_back(temp);
+          mesh.faces.edge_indices.push_back(temp);
+        }
       }
+      mesh.faces.edge_indices.push_back(temp_first);
     }else{ // when more than three vertices in a face
       for (int j=0; j<vec_in_fac;j++){
         my_fin >> temp;
-        mesh.faces.indices.push_back(temp);
         holder_indices.push_back(temp);
+
+        if (j == 0) {
+          mesh.faces.edge_indices.push_back(temp);
+          temp_first = temp;
+        } else {
+          mesh.faces.edge_indices.push_back(temp);
+          mesh.faces.edge_indices.push_back(temp);
+        }
       }
+      mesh.faces.edge_indices.push_back(temp_first);
       for (int j=0; j<(vec_in_fac-2);j++){
         mesh.faces.draw_indices.push_back(holder_indices[0]);
         mesh.faces.draw_indices.push_back(holder_indices[j+1]);
@@ -249,7 +260,6 @@ void read_all_meshes(map<string, int>& filenames, vector<MESH>& all_meshes,
 }
 
 void print_mesh_info(MESH& mesh){
-  int count = 0;
   cout << mesh.num_v << " ";
   cout << mesh.num_f << " ";
   cout << mesh.num_e << " " << endl;
@@ -257,15 +267,6 @@ void print_mesh_info(MESH& mesh){
   for (int i = 0; i<(int)mesh.num_v; i++){
     for (int j=0; j<3; j++){
       cout << mesh.vertices[i].pos[j] << " ";
-    }
-    cout << endl;
-  }
-  /* print faces */
-  for (int i = 0; i<(int)mesh.num_f; i++){
-    cout << (int)mesh.faces.num_v[i] << " ";
-    for (int j=0; j<(int)mesh.faces.num_v[i]; j++){
-      cout << (int)mesh.faces.indices[count] << " ";
-      count++;
     }
     cout << endl;
   }
@@ -293,12 +294,12 @@ void print_mesh_info(MESH& mesh){
 }
 
 void load_texture(MESH& mesh, const GLfloat* texture){
-  mesh.texture.diffuse[0] = texture[0];
-  mesh.texture.diffuse[1] = texture[1];
-  mesh.texture.diffuse[2] = texture[2];
-  mesh.texture.ambient[0] = texture[3];
-  mesh.texture.ambient[1] = texture[4];
-  mesh.texture.ambient[2] = texture[5];
+  mesh.texture.ambient[0] = texture[0];
+  mesh.texture.ambient[1] = texture[1];
+  mesh.texture.ambient[2] = texture[2];
+  mesh.texture.diffuse[0] = texture[3];
+  mesh.texture.diffuse[1] = texture[4];
+  mesh.texture.diffuse[2] = texture[5];
   mesh.texture.specular[0] = texture[6];
   mesh.texture.specular[1] = texture[7];
   mesh.texture.specular[2] = texture[8];
@@ -313,6 +314,8 @@ void load_random_texture(vector<MESH>& all_meshes){
 
 void MESH::draw(GLuint shader, glm::mat4& PROJ_MAT, glm::mat4& MV_MAT, 
   LIGHT& THE_LIGHT, d_mode DRAW_MODE) {
+  glUseProgram(shader);
+  glBindVertexArray(this->vao);
 
   GLuint ambient = glGetUniformLocation(shader, "AmbientProduct");
   GLuint diffuse = glGetUniformLocation(shader, "DiffuseProduct");
@@ -325,17 +328,14 @@ void MESH::draw(GLuint shader, glm::mat4& PROJ_MAT, glm::mat4& MV_MAT,
   glUniform4fv(specular, 1, glm::value_ptr(this->specular_product));
   glUniform1f(shineness, this->texture.shineness);
 
-  glUseProgram(shader);
-  glBindVertexArray(this->vao);
-
   GLuint proj = glGetUniformLocation(shader, "Projection");
   glUniformMatrix4fv(proj, 1, GL_FALSE, glm::value_ptr(PROJ_MAT));
   GLuint mv = glGetUniformLocation(shader, "ModelView");
   glUniformMatrix4fv(mv, 1, GL_FALSE, glm::value_ptr(MV_MAT));
   //TODO
   GLuint trans = glGetUniformLocation(shader, "Transformation");
-  glUniformMatrix4fv(trans, 1, GL_FALSE, glm::value_ptr(this->transforms[0]));
-
+  glUniformMatrix4fv(trans, 1, GL_FALSE, glm::value_ptr(transforms[0]));
+  //cout << glm::to_string(PROJ_MAT) << endl;
 
   //glm::vec3 pos(MV_MAT*this->transforms[0]*glm::vec4(this->vertices[1].pos, 1));
   //glm::vec3 pos_light(MV_MAT*THE_LIGHT.light0);
@@ -345,21 +345,23 @@ void MESH::draw(GLuint shader, glm::mat4& PROJ_MAT, glm::mat4& MV_MAT,
   //cout << glm::to_string(N) << endl;
   //cout << glm::dot(L, N) << endl;
 
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ebo);
   switch(DRAW_MODE) {
     case FACE:
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ebo_other);
       glDrawElements(GL_TRIANGLES, this->faces.draw_indices.size(), 
-        GL_UNSIGNED_INT, (void*) 0);
+        GL_UNSIGNED_SHORT, (void*) 0);
       break;
 
     case POINT:
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ebo_other);
       glDrawElements(GL_POINTS, this->faces.draw_indices.size(), 
-        GL_UNSIGNED_INT, (void*) 0);
+        GL_UNSIGNED_SHORT, (void*) 0);
       break;
 
-    case EDGE: //TODO
-      glDrawElements(GL_TRIANGLES, this->faces.draw_indices.size(), 
-        GL_UNSIGNED_INT, (void*) 0);
+    case EDGE:
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ebo_edge);
+      glDrawElements(GL_LINES, this->faces.edge_indices.size(), 
+        GL_UNSIGNED_SHORT, (void*) 0);
       break;
 
     default:
@@ -371,7 +373,11 @@ void MESH::draw(GLuint shader, glm::mat4& PROJ_MAT, glm::mat4& MV_MAT,
 void MESH::rotate() {
   for (auto transform = transforms.begin(); transform != transforms.end();
     transform++) {
-    *transform = glm::rotate(*transform, 1*DEGREE_TO_RADIAN, 
+    *transform = glm::rotate(*transform, 1.0f*DEGREE_TO_RADIAN, 
+      glm::vec3(1.0f, 0.0f, 0.0f));
+    *transform = glm::rotate(*transform, 0.7f*DEGREE_TO_RADIAN, 
       glm::vec3(0.0f, 1.0f, 0.0f));
+    *transform = glm::rotate(*transform, -0.3f*DEGREE_TO_RADIAN, 
+      glm::vec3(0.0f, 0.0f, 1.0f));
   }
 }

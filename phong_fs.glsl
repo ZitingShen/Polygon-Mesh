@@ -1,10 +1,10 @@
-// fragment shader
+#version 150
+
 out vec4 fColor;
-// per-fragment interpolated values from the
-// vertex shader
 in vec3 fN;
 in vec3 fL;
 in vec3 fE;
+
 uniform vec4 AmbientProduct, DiffuseProduct, SpecularProduct;
 uniform mat4 ModelView;
 uniform vec4 LightPosition;
@@ -27,5 +27,6 @@ void main() {
 		specular = vec4(0.0, 0.0, 0.0, 1.0);
 
 	fColor = ambient + diffuse + specular;
+	//fColor = ambient;
 	fColor.a = 1.0;
 }

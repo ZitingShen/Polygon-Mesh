@@ -42,9 +42,9 @@ struct VERTEX{
 };
 
 struct FACES{
-  vector<GLuint> num_v;
-  vector<GLuint> indices;  // origianl indices verbatim
-  vector<GLuint> draw_indices; // triangulised indices
+  vector<GLushort> num_v;
+  vector<GLushort> edge_indices;  // origianl indices verbatim
+  vector<GLushort> draw_indices; // triangulised indices
   vector<glm::vec3> normal;     // nromals of triangulaised faces
 };
 
@@ -65,8 +65,6 @@ class MESH {
     void setup(GLuint shader);
     void bind_flat(GLuint shader);
     void bind_other(GLuint shader);
-    void get_render_data(GLuint& vao, GLuint& vbo_flat, GLuint& vbo_other, 
-      GLuint& ebo);
     void compute_face_normal();
     void compute_vertex_normal();
     void compute_light_product(LIGHT& THE_LIGHT);
@@ -74,7 +72,7 @@ class MESH {
       LIGHT& THE_LIGHT, d_mode DRAW_MODE);
     void rotate();
   private:
-    GLuint vao, vbo_flat, vbo_other, ebo;
+    GLuint vao, vbo_flat, vbo_other, ebo_edge, ebo_other;
 };
 
  // in vbos

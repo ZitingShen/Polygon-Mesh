@@ -13,7 +13,7 @@ LIGHT THE_LIGHT;
 map<string, int> FILE_NAMES;
 vector<MESH> MESHES;
 GLuint SHADER, flat_shader, gouraud_shader, phong_shader;
-glm::vec3 center, eye, up;
+glm::vec3 CENTER, EYE, UP;
 
 int main(int argc, char *argv[]){
   if (!glfwInit ()) {
@@ -45,14 +45,13 @@ int main(int argc, char *argv[]){
       FILE_NAMES[new_file]++;
   }
   
-  //flat_shader = initshader("flat_vs.glsl", "flat_fs.glsl");
   gouraud_shader = initshader("gouraud_vs.glsl", "gouraud_fs.glsl");
+  flat_shader = gouraud_shader;
   phong_shader = initshader("phong_vs.glsl", "phong_fs.glsl");
   SHADER = gouraud_shader;
   MESHES.reserve(FILE_NAMES.size());
   MESHES.resize(FILE_NAMES.size());
   read_all_meshes(FILE_NAMES, MESHES, MAX_XYZ, MIN_XYZ, SHADER);
-  
   init(window);
 
   glfwMakeContextCurrent(window);
@@ -62,6 +61,7 @@ int main(int argc, char *argv[]){
   glfwSetFramebufferSizeCallback(window, framebuffer_resize);
   
   glEnable(GL_DEPTH_TEST);
+  glEnable(GL_CULL_FACE);
   glShadeModel(GL_SMOOTH);
 
   while(!glfwWindowShouldClose(window)) {
@@ -91,19 +91,26 @@ void init(GLFWwindow* window) {
   glClearColor(0, 1.0, 1.0, 1.0);
   glColor3f(0.0, 0.0, 0.0);
   glPointSize(1);
+  glLineWidth(0.01);
 
+  change_perspective(window);
   //load_random_texture(MESHES);
-  CURRENT_MIN = MIN_XYZ;
-  CURRENT_MAX = MAX_XYZ;
-  THE_LIGHT.light0 = glm::vec4(MAX_XYZ[0], 
-                               MIN_XYZ[1]*2-MAX_XYZ[1], 
-                               MAX_XYZ[2]*5-MIN_XYZ[2],
-                               0);
-  //THE_LIGHT.light0 = glm::vec4(10, 10, 10, 0);
+  glm::vec3 diff = MAX_XYZ - MIN_XYZ;
+  CENTER = (MAX_XYZ + MIN_XYZ)*0.5f;
+  EYE = glm::vec3(CENTER[0] + diff[0]*INITIAL_X_DISPLACEMENT, 
+                  CENTER[1] + diff[1]*INITIAL_Y_DISPLACEMENT, 
+                  CENTER[2] + diff[2]*INITIAL_Z_DISPLACEMENT);
+  UP = glm::vec3(0, 0, 1);
+  MV_MAT = glm::lookAt(EYE, CENTER, UP);
+  //THE_LIGHT.light0 = glm::vec4(CENTER[0] + MAX_XYZ[0] - MIN_XYZ[0], 
+  //                             CENTER[1] + MIN_XYZ[1] - MAX_XYZ[1], 
+  //                             CENTER[2],
+  //                             0);
+
+  THE_LIGHT.light0 = glm::vec4(10, 10, 10, 0);
   for (auto itr_mesh = MESHES.begin(); itr_mesh != MESHES.end(); itr_mesh++)
     itr_mesh->compute_light_product(THE_LIGHT);
-  change_perspective(window);
-  change_view();
+  
 }
 
 void framebuffer_resize(GLFWwindow* window, int width, int height) {
@@ -111,7 +118,7 @@ void framebuffer_resize(GLFWwindow* window, int width, int height) {
 }
 
 void reshape(GLFWwindow* window, int w, int h) {
-  change_view();
+  MV_MAT = glm::lookAt(EYE, CENTER, UP);
 }
 
 void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -132,10 +139,8 @@ void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods) {
       PAUSE_TIME = 0;
       break;
 
-      case GLFW_KEY_E: //TODO
+      case GLFW_KEY_E:
       DRAW_MODE = EDGE;
-      //for (auto itr_mesh = MESHES.begin(); itr_mesh != MESHES.end(); itr_mesh++)
-      //  itr_mesh->bind_edge(SHADER);
       break;
 
       case GLFW_KEY_R:
@@ -165,18 +170,12 @@ void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods) {
       break;
 
       case GLFW_KEY_UP: {
-      glm::vec3 diff = (MAX_XYZ - MIN_XYZ)*ZOOM_STEP_RATIO;
-      CURRENT_MIN += diff;
-      CURRENT_MAX -= diff;
-      change_perspective(window);
+      change_view(ZOOM_IN);
       }
       break;
 
       case GLFW_KEY_DOWN: {
-      glm::vec3 diff = (MAX_XYZ - MIN_XYZ)*ZOOM_STEP_RATIO;
-      CURRENT_MIN -= diff;
-      CURRENT_MAX += diff;
-      change_perspective(window);
+      change_view(ZOOM_OUT);
       }
       break;
 
@@ -216,13 +215,16 @@ void change_perspective(GLFWwindow* window) {
   }
 }
 
-void change_view() {
-  glm::vec3 diff = MAX_XYZ - MIN_XYZ;
-  center = (MAX_XYZ + MIN_XYZ)*0.5f;
-  eye = glm::vec3(center[0] + diff[0]*INITIAL_X_DISPLACEMENT, 
-                  MIN_XYZ[1] - diff[1]*INITIAL_Y_DISPLACEMENT, 3*MAX_XYZ[2]);
-  up = glm::vec3(0, 0, 1);
-  MV_MAT = glm::lookAt(eye, center, up);
+void change_view(Z_DIRECTION z) {
+  glm::vec3 zoom_step = (EYE - CENTER)*ZOOM_STEP_RATIO;
+  cout << glm::to_string(zoom_step) << endl;
+  cout << z << " " << ZOOM_IN << endl;
+  if (z == ZOOM_IN) {
+    EYE += zoom_step;
+  } else {
+    EYE -= zoom_step;
+  }
+  MV_MAT = glm::lookAt(EYE, CENTER, UP);
 }
 
 void print() {
@@ -232,7 +234,7 @@ void print() {
   cout << "Current far: " << CURRENT_MAX[1] << endl;
   cout << "Current bottom: " << CURRENT_MIN[2] << endl;
   cout << "Current up: " << CURRENT_MIN[2] << endl;
-  cout << "Eye: (" << eye[0] << ", " << eye[1] << ", " << eye[2] << ")" << endl;
-  cout << "Center: (" << center[0] << ", " << center[1] << ", " << center[2] << ")" << endl;
-  cout << "Up: (" << up[0] << ", " << up[1] << ", " << up[2] << ")" << endl;
+  cout << "Eye: (" << EYE[0] << ", " << EYE[1] << ", " << EYE[2] << ")" << endl;
+  cout << "Center: (" << CENTER[0] << ", " << CENTER[1] << ", " << CENTER[2] << ")" << endl;
+  cout << "Up: (" << UP[0] << ", " << UP[1] << ", " << UP[2] << ")" << endl;
 }
