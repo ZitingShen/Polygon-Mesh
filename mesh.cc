@@ -5,10 +5,10 @@ using namespace std;
 int WIDTH, HEIGHT;
 int IS_PAUSED = GLFW_TRUE;
 int PAUSE_TIME = 0;
+GLfloat PARALLEL_SCALE = 1.0;
 p_mode PROJ_MODE = PERSPECTIVE;
 d_mode DRAW_MODE = FACE;
 glm::mat4 PROJ_MAT, MV_MAT;
-glm::vec3 MIN_XYZ, MAX_XYZ, CURRENT_MIN, CURRENT_MAX;
 LIGHT THE_LIGHT;
 map<string, int> FILE_NAMES;
 vector<MESH> MESHES;
@@ -170,12 +170,12 @@ void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods) {
       break;
 
       case GLFW_KEY_UP: {
-      change_view(ZOOM_IN);
+      change_view(PROJ_MODE, ZOOM_IN);
       }
       break;
 
       case GLFW_KEY_DOWN: {
-      change_view(ZOOM_OUT);
+      change_view(PROJ_MODE, ZOOM_OUT);
       }
       break;
 
@@ -202,10 +202,10 @@ void mouse(GLFWwindow* window, int button, int action, int mods) {
 
 void change_perspective(GLFWwindow* window) {
   if (PROJ_MODE == PARALLEL) {
-    //PROJ_MAT = glm::ortho (-10.f, 10.f, -20.f, 20.f, -20.f, 20.f);
-    PROJ_MAT = glm::ortho(CENTER[0] - 2*BLOCK, CENTER[0] + BLOCK,
-                          CENTER[1] - 2*BLOCK, CENTER[1] + 2*BLOCK,
-                          CENTER[2] - 1*BLOCK, CENTER[2] + 2*BLOCK);
+    //Don't modify the coefficient here
+    PROJ_MAT = glm::ortho(CENTER[0] - 2.3f*BLOCK, CENTER[0] + 0.7f*BLOCK,
+                          CENTER[1] - 1.5f*BLOCK, CENTER[1] + 1.5f*BLOCK,
+                          CENTER[2] - 1.0f*BLOCK, CENTER[2] + 4.0f*BLOCK);
   } else if (PROJ_MODE == PERSPECTIVE) {
     glfwGetWindowSize(window, &WIDTH, &HEIGHT);
     PROJ_MAT = glm::perspective(45.0f, WIDTH*1.0f/HEIGHT, CAMERA_NEAR, CAMERA_FAR);
@@ -214,23 +214,27 @@ void change_perspective(GLFWwindow* window) {
   }
 }
 
-void change_view(z_direction z) {
-  glm::vec3 zoom_step = (EYE - CENTER)*ZOOM_STEP_RATIO;
-  if (z == ZOOM_IN) {
-    EYE -= zoom_step;
+void change_view(p_mode PROJ_MODE, z_direction z) {
+  if (PROJ_MODE == PERSPECTIVE) {
+    glm::vec3 zoom_step = (EYE - CENTER)*ZOOM_STEP_RATIO;
+    if (z == ZOOM_IN) {
+      EYE -= zoom_step;
+    } else {
+      EYE += zoom_step;
+    }
+    MV_MAT = glm::lookAt(EYE, CENTER, UP);
   } else {
-    EYE += zoom_step;
+    if (z == ZOOM_IN) {
+      PARALLEL_SCALE += ZOOM_STEP_RATIO;
+    } else {
+      PARALLEL_SCALE -= ZOOM_STEP_RATIO;
+    }
+    MV_MAT = glm::lookAt(EYE, CENTER, UP);
+    MV_MAT = glm::scale(MV_MAT, glm::vec3(PARALLEL_SCALE, PARALLEL_SCALE, PARALLEL_SCALE));
   }
-  MV_MAT = glm::lookAt(EYE, CENTER, UP);
 }
 
 void print() {
-  cout << "Current left: " << CURRENT_MIN[0] << endl;
-  cout << "Current right: " << CURRENT_MAX[0] << endl;
-  cout << "Current near: " << CURRENT_MIN[1] << endl;
-  cout << "Current far: " << CURRENT_MAX[1] << endl;
-  cout << "Current bottom: " << CURRENT_MIN[2] << endl;
-  cout << "Current up: " << CURRENT_MIN[2] << endl;
   cout << "Eye: (" << EYE[0] << ", " << EYE[1] << ", " << EYE[2] << ")" << endl;
   cout << "Center: (" << CENTER[0] << ", " << CENTER[1] << ", " << CENTER[2] << ")" << endl;
   cout << "Up: (" << UP[0] << ", " << UP[1] << ", " << UP[2] << ")" << endl;
