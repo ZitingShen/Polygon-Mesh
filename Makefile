@@ -1,7 +1,7 @@
 ifeq ($(shell uname -s), Darwin)
-LDFLAGS=-L/opt/ports/lib -framework OpenGL -lglfw -lGLEW -lm
+LDFLAGS=-L/opt/ports/lib -framework OpenGL -lglfw3 -lGLEW -lm
 else
-LDFLAGS=-lX11 -lGL -lGLU -lglut -lGLEW -lglfw -lm 
+LDFLAGS=-lX11 -lGL -lGLU -lglut -lGLEW -lglfw3 -lm 
 endif
 CC = g++
 CFLAGS=-g -Wall -std=c++11 -I/opt/ports/include
