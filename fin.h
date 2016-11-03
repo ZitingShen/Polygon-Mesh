@@ -110,12 +110,8 @@ class MESH {
    1. substitute r*v with n*h, in order to avoid calculating r (perfect reflection) 
    2. weaken specular -> compensate with a smaller alpha  */
 
-void read_mesh(string filename, MESH& mesh, int count,
-               glm::vec3& max_xyz, glm::vec3& min_xyz,
-               GLuint shader);
-void read_all_meshes(map<string, int>& filenames, vector<MESH>& all_meshes,
-                     glm::vec3& max_xyz, glm::vec3& min_xyz,
-                     GLuint shader);
+int read_mesh(string filename, MESH& mesh, int count, GLuint shader);
+void read_all_meshes(map<string, int>& filenames, vector<MESH>& all_meshes, GLuint shader);
 void print_mesh_info(MESH& mesh);
 void load_texture(MESH& mesh, const GLfloat* texture);
 void load_random_texture(vector<MESH>& all_meshes);

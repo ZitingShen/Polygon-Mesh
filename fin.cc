@@ -145,9 +145,7 @@ void MESH::compute_light_product(LIGHT& THE_LIGHT) {
   //cout << glm::to_string(ambient_product) << endl;
 }
 
-void read_mesh(string filename, MESH& mesh, int repeated_count,
-               glm::vec3& max_xyz, glm::vec3& min_xyz,
-               GLuint shader){
+int read_mesh(string filename, MESH& mesh, int repeated_count, GLuint shader){
   glm::vec3 local_max = glm::vec3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
   glm::vec3 local_min = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
   vector<GLuint> holder_indices;
@@ -158,12 +156,12 @@ void read_mesh(string filename, MESH& mesh, int repeated_count,
   my_fin.open(filename);
   if (!my_fin.is_open()){
     cerr << "READ_MESH: CAN NOT OPEN FILE: " << filename <<endl;
-    return;
+    return GLFW_FALSE;
   }
   getline(my_fin, off);
   if (off.compare("OFF") != 0){
     cerr << "READ_MESH: NOT AN OFF FILE: " << filename <<endl;
-    return;
+    return GLFW_FALSE;
   }
   /* reading attributs */
   my_fin >> mesh.num_v;
@@ -175,14 +173,6 @@ void read_mesh(string filename, MESH& mesh, int repeated_count,
     for (int j=0; j<3; j++){
       my_fin >> mesh.vertices[i].pos[j];
     }
-    //max_xyz[0] = max_xyz[0]<holder[0]?holder[0]:max_xyz[0]; 
-    max_xyz[0] = max_xyz[0]<mesh.vertices[i].pos[0]?mesh.vertices[i].pos[0]:max_xyz[0];
-    max_xyz[1] = max_xyz[1]<mesh.vertices[i].pos[1]?mesh.vertices[i].pos[1]:max_xyz[1];
-    max_xyz[2] = max_xyz[2]<mesh.vertices[i].pos[2]?mesh.vertices[i].pos[2]:max_xyz[2];
-    min_xyz[0] = min_xyz[0]>mesh.vertices[i].pos[0]?mesh.vertices[i].pos[0]:min_xyz[0];
-    min_xyz[1] = min_xyz[1]>mesh.vertices[i].pos[1]?mesh.vertices[i].pos[1]:min_xyz[1];
-    min_xyz[2] = min_xyz[2]>mesh.vertices[i].pos[2]?mesh.vertices[i].pos[2]:min_xyz[2];
-
     local_max[0] = local_max[0]<mesh.vertices[i].pos[0]?mesh.vertices[i].pos[0]:local_max[0];
     local_max[1] = local_max[1]<mesh.vertices[i].pos[1]?mesh.vertices[i].pos[1]:local_max[1];
     local_max[2] = local_max[2]<mesh.vertices[i].pos[2]?mesh.vertices[i].pos[2]:local_max[2];
@@ -192,6 +182,7 @@ void read_mesh(string filename, MESH& mesh, int repeated_count,
   }
   /* reading faces */
   int count = 0;
+  int temp_count = 0;
   for (int i=0; i<(int)mesh.num_f; i++){
     my_fin >> vec_in_fac;
     mesh.faces.num_v.push_back(static_cast<GLuint>(vec_in_fac));
@@ -236,8 +227,11 @@ void read_mesh(string filename, MESH& mesh, int repeated_count,
         mesh.faces.draw_indices.push_back(holder_indices[j+2]);
         mesh.vertices_flat.push_back(VERTEX());
         mesh.vertices_flat[count].pos = mesh.vertices[holder_indices[0]].pos;
-        mesh.faces.edge_flat.push_back(count);
-        count++;
+        if (j == 0) {
+          mesh.faces.edge_flat.push_back(count);
+          temp_count = count;
+          count++;
+        }
         mesh.vertices_flat.push_back(VERTEX());
         mesh.vertices_flat[count].pos = mesh.vertices[holder_indices[j+1]].pos;
         mesh.faces.edge_flat.push_back(count);
@@ -250,24 +244,25 @@ void read_mesh(string filename, MESH& mesh, int repeated_count,
         count++;
         mesh.faces.edge_flat.push_back(count-3);
       }
+      mesh.faces.edge_flat.push_back(temp_count);
       holder_indices.clear(); // reset holder
     }
   }
   my_fin.close();
   for (int i = 0; i < repeated_count; i++) {
-    float min_scale = FLT_MAX;
+    float max_scale = -FLT_MAX;
     for (int j = 0; j < 3; j++) {
-      min_scale = local_max[j]-local_min[j]<min_scale?local_max[j]-local_min[j]:min_scale;
+      max_scale = local_max[j]-local_min[j]>max_scale?local_max[j]-local_min[j]:max_scale;
     }
     glm::mat4 new_mat;
-    new_mat = glm::translate(glm::vec3(
-                         (local_min[0]-local_max[0])*0.5f + (mesh.id[i]%4)*BLOCK_X,
-                         (local_min[1]-local_max[1])*0.5f,
-                         (local_min[2]-local_max[2])*0.5f + (mesh.id[i]/4)*BLOCK_Z));
-    new_mat = glm::scale(new_mat, glm::vec3(
-                         MESH_X/min_scale,
-                         MESH_Y/min_scale,
-                         MESH_Z/min_scale));
+    new_mat = glm::scale(glm::vec3(
+                         MESH_X/max_scale,
+                         MESH_Y/max_scale,
+                         MESH_Z/max_scale));
+    new_mat = glm::translate(new_mat, glm::vec3(
+                          max_scale*(mesh.id[i]%3)*BLOCK,
+                          0,
+                          max_scale*(mesh.id[i]/3)*BLOCK));
     
     mesh.scaled.push_back(new_mat);
     mesh.transforms.push_back(new_mat);
@@ -277,17 +272,10 @@ void read_mesh(string filename, MESH& mesh, int repeated_count,
   mesh.compute_face_normal();
   mesh.compute_vertex_normal();
   mesh.setup(shader);
+  return GLFW_TRUE;
 }
 
-void read_all_meshes(map<string, int>& filenames, vector<MESH>& all_meshes,
-                     glm::vec3& max_xyz, glm::vec3& min_xyz,
-                     GLuint shader){
-  max_xyz[0] = -FLT_MAX;
-  max_xyz[1] = -FLT_MAX;
-  max_xyz[2] = -FLT_MAX;
-  min_xyz[0] = FLT_MAX;
-  min_xyz[1] = FLT_MAX;
-  min_xyz[2] = FLT_MAX;
+void read_all_meshes(map<string, int>& filenames, vector<MESH>& all_meshes, GLuint shader){
   int i = 0;
   int id_count = 0;
   for (auto itr_file = filenames.begin(); itr_file != filenames.end(); itr_file++){
@@ -296,9 +284,12 @@ void read_all_meshes(map<string, int>& filenames, vector<MESH>& all_meshes,
       all_meshes[i].id.push_back(id_count);
       id_count++;
     }
-    read_mesh(itr_file->first, all_meshes[i], itr_file->second, max_xyz, min_xyz,
-              shader);
-    i++;
+    if(!read_mesh(itr_file->first, all_meshes[i], itr_file->second, shader)){
+      id_count -= itr_file->second;
+      all_meshes.erase(all_meshes.begin()+i);
+    } else {
+      i++;
+    }
   }
 }
 

@@ -101,7 +101,7 @@ void init(GLFWwindow* window) {
   //EYE = glm::vec3(CENTER[0] + diff[0]*INITIAL_X_DISPLACEMENT, 
   //                CENTER[1] + diff[1]*INITIAL_Y_DISPLACEMENT, 
   //                CENTER[2] + diff[2]*INITIAL_Z_DISPLACEMENT);
-  CENTER = glm::vec3(1.5*BLOCK_X, 0, BLOCK_Z);
+  CENTER = glm::vec3(0.7*BLOCK_X, 0, 0.7BLOCK_Z);
   EYE = glm::vec3(EYE_X_DISPLACEMENT, EYE_Y_DISPLACEMENT, EYE_Z_DISPLACEMENT);
   UP = glm::vec3(0, 0, 1);
   MV_MAT = glm::lookAt(EYE, CENTER, UP);
@@ -203,10 +203,9 @@ void mouse(GLFWwindow* window, int button, int action, int mods) {
 void change_perspective(GLFWwindow* window) {
   if (PROJ_MODE == PARALLEL) {
     //PROJ_MAT = glm::ortho (-10.f, 10.f, -20.f, 20.f, -20.f, 20.f);
-    PROJ_MAT = glm::ortho(MIN_XYZ[0]-0.3f, MAX_XYZ[0]+0.3f,
-                          MIN_XYZ[1]-0.3f, MAX_XYZ[1]+0.3f,
-                          MIN_XYZ[2]-0.3f, MAX_XYZ[2]+0.3f);
-    cout << glm::to_string(PROJ_MAT) << endl;
+    PROJ_MAT = glm::ortho(CENTER[0] - 2*BLOCK, CENTER[0] + BLOCK,
+                          CENTER[1] - 2*BLOCK, CENTER[1] + 2*BLOCK,
+                          CENTER[2] - 1*BLOCK, CENTER[2] + 2*BLOCK);
   } else if (PROJ_MODE == PERSPECTIVE) {
     glfwGetWindowSize(window, &WIDTH, &HEIGHT);
     PROJ_MAT = glm::perspective(45.0f, WIDTH*1.0f/HEIGHT, CAMERA_NEAR, CAMERA_FAR);
