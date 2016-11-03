@@ -40,7 +40,7 @@ int main(int argc, char *argv[]){
 
   for (int i = 1; i < argc; i++) {
     string new_file(argv[i]);
-    if (FILE_NAMES.find(new_file) != FILE_NAMES.end())
+    if (FILE_NAMES.find(new_file) == FILE_NAMES.end())
       FILE_NAMES[new_file] = 1;
     else
       FILE_NAMES[new_file]++;
@@ -96,19 +96,17 @@ void init(GLFWwindow* window) {
 
   change_perspective(window);
   //load_random_texture(MESHES);
-  glm::vec3 diff = MAX_XYZ - MIN_XYZ;
-  CENTER = (MAX_XYZ + MIN_XYZ)*0.5f;
-  EYE = glm::vec3(CENTER[0] + diff[0]*INITIAL_X_DISPLACEMENT, 
-                  CENTER[1] + diff[1]*INITIAL_Y_DISPLACEMENT, 
-                  CENTER[2] + diff[2]*INITIAL_Z_DISPLACEMENT);
+  //glm::vec3 diff = MAX_XYZ - MIN_XYZ;
+  //CENTER = (MAX_XYZ + MIN_XYZ)*0.5f;
+  //EYE = glm::vec3(CENTER[0] + diff[0]*INITIAL_X_DISPLACEMENT, 
+  //                CENTER[1] + diff[1]*INITIAL_Y_DISPLACEMENT, 
+  //                CENTER[2] + diff[2]*INITIAL_Z_DISPLACEMENT);
+  CENTER = glm::vec3(1.5*BLOCK_X, 0, BLOCK_Z);
+  EYE = glm::vec3(EYE_X_DISPLACEMENT, EYE_Y_DISPLACEMENT, EYE_Z_DISPLACEMENT);
   UP = glm::vec3(0, 0, 1);
   MV_MAT = glm::lookAt(EYE, CENTER, UP);
-  //THE_LIGHT.light0 = glm::vec4(CENTER[0] + MAX_XYZ[0] - MIN_XYZ[0], 
-  //                             CENTER[1] + MIN_XYZ[1] - MAX_XYZ[1], 
-  //                             CENTER[2],
-  //                             0);
 
-  THE_LIGHT.light0 = glm::vec4(10, 10, 10, 0);
+  THE_LIGHT.light0 = glm::vec4(LIGHT_X, LIGHT_Y, LIGHT_Z, 0);
   for (auto itr_mesh = MESHES.begin(); itr_mesh != MESHES.end(); itr_mesh++)
     itr_mesh->compute_light_product(THE_LIGHT);
   
@@ -205,9 +203,9 @@ void mouse(GLFWwindow* window, int button, int action, int mods) {
 void change_perspective(GLFWwindow* window) {
   if (PROJ_MODE == PARALLEL) {
     //PROJ_MAT = glm::ortho (-10.f, 10.f, -20.f, 20.f, -20.f, 20.f);
-    PROJ_MAT = glm::ortho(MIN_XYZ[0]-2, MAX_XYZ[0]+2,
-                          MIN_XYZ[1]-2, MAX_XYZ[1]+2,
-                          MIN_XYZ[2]-2, MAX_XYZ[2]+2);
+    PROJ_MAT = glm::ortho(MIN_XYZ[0]-0.3f, MAX_XYZ[0]+0.3f,
+                          MIN_XYZ[1]-0.3f, MAX_XYZ[1]+0.3f,
+                          MIN_XYZ[2]-0.3f, MAX_XYZ[2]+0.3f);
     cout << glm::to_string(PROJ_MAT) << endl;
   } else if (PROJ_MODE == PERSPECTIVE) {
     glfwGetWindowSize(window, &WIDTH, &HEIGHT);
@@ -219,12 +217,10 @@ void change_perspective(GLFWwindow* window) {
 
 void change_view(z_direction z) {
   glm::vec3 zoom_step = (EYE - CENTER)*ZOOM_STEP_RATIO;
-  cout << glm::to_string(zoom_step) << endl;
-  cout << z << " " << ZOOM_IN << endl;
   if (z == ZOOM_IN) {
-    EYE += zoom_step;
-  } else {
     EYE -= zoom_step;
+  } else {
+    EYE += zoom_step;
   }
   MV_MAT = glm::lookAt(EYE, CENTER, UP);
 }

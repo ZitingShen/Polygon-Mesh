@@ -46,21 +46,25 @@ struct FACES{
   vector<GLuint> num_v;
   vector<GLuint> edge_indices;  // edge indices verbatim
   vector<GLuint> draw_indices; // triangulised indices
+  vector<GLuint> edge_flat;
   vector<glm::vec3> normal;     // nromals of triangulaised faces
 };
 
 class MESH {
   public:
     /* public data member */
+    vector<GLuint> id;
     GLuint num_v;
     GLuint num_f; // not necessarily the num of triangles to be drawn
     GLuint num_e;
     vector<VERTEX> vertices;       // vertex pos and vertex normal
     vector<VERTEX> vertices_flat;  // vertex pos and face normal
+    vector<glm::mat4> scaled;
     vector<glm::mat4> transforms;  // transform matrices for each copy of the objects
     TEXTURE  texture;
     FACES     faces;
     glm::vec4 ambient_product, diffuse_product, specular_product;
+    glm::vec3 spin, delta;
     /* Constructor */
     MESH();
     void setup(GLuint shader);
@@ -73,7 +77,7 @@ class MESH {
       LIGHT& THE_LIGHT, d_mode DRAW_MODE, s_mode SHADING_MODE);
     void rotate();
   private:
-    GLuint vao_other, vao_flat, vbo_flat, vbo_other, ebo_edge, ebo_other;
+    GLuint vao_other, vao_flat, vbo_flat, vbo_other, ebo_edge, ebo_other, ebo_flat;
 };
 
  // in vbos

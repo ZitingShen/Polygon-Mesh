@@ -22,9 +22,17 @@
 #define CAMERA_NEAR               0.1f
 #define CAMERA_FAR                100000000.0f
 #define ZOOM_STEP_RATIO			      0.3f
-#define INITIAL_X_DISPLACEMENT    0.5f
-#define INITIAL_Y_DISPLACEMENT    2.0f
-#define INITIAL_Z_DISPLACEMENT    0.5f
+#define EYE_X_DISPLACEMENT        1.8f
+#define EYE_Y_DISPLACEMENT        5.0f
+#define EYE_Z_DISPLACEMENT        1.2f
+#define LIGHT_X                   10.0f
+#define LIGHT_Y                   10.0f
+#define LIGHT_Z                   10.0f
+#define MESH_X                    0.3f
+#define MESH_Y                    0.3f
+#define MESH_Z                    0.3f
+#define BLOCK_X                   1.2f
+#define BLOCK_Z                   1.2f
 
 #define POS_LOCATION              0
 #define NORMAL_LOCATION           1

@@ -28,6 +28,8 @@ void MESH::setup(GLuint shader){
     this->faces.draw_indices.size()*sizeof(GLuint));
   this->ebo_edge = make_bo(GL_ELEMENT_ARRAY_BUFFER, &this->faces.edge_indices[0],
     this->faces.edge_indices.size()*sizeof(GLuint));
+  this->ebo_flat = make_bo(GL_ELEMENT_ARRAY_BUFFER, &this->faces.edge_flat[0],
+    this->faces.edge_flat.size()*sizeof(GLuint));
   bind_other(shader);
 }
 
@@ -76,16 +78,12 @@ void MESH::bind_other(GLuint shader){
 void MESH::compute_face_normal(){
   glm::vec3 normal;
   // Assuming all vertices are given in counter-clock order
-  this->vertices_flat.resize(this->faces.draw_indices.size());
   for (unsigned int count=0; count<faces.draw_indices.size(); count+=3){
     normal = glm::cross(this->vertices[ this->faces.draw_indices[count + 2] ].pos
                       - this->vertices[ this->faces.draw_indices[count + 1] ].pos,
                         this->vertices[ this->faces.draw_indices[count    ] ].pos
                       - this->vertices[ this->faces.draw_indices[count + 1] ].pos );
     this->faces.normal.push_back(glm::normalize(normal));
-    this->vertices_flat[count].pos = this->vertices[this->faces.draw_indices[count]].pos;
-    this->vertices_flat[count+1].pos = this->vertices[this->faces.draw_indices[count+1]].pos;
-    this->vertices_flat[count+2].pos = this->vertices[this->faces.draw_indices[count+2]].pos;
     this->vertices_flat[count].normal = normal;
     this->vertices_flat[count+1].normal = normal;
     this->vertices_flat[count+2].normal = normal;
@@ -127,16 +125,6 @@ void MESH::compute_vertex_normal(){
          << this->vertices[i].normal[2] << " " << endl;
          */
   }
-
-  
-  for (int i=0; i<(int)this->faces.normal.size(); i++){
-    for (int j=0; j<3; j++){
-      //cout << i*3+j << " " << this->faces.draw_indices[i*3+j] << endl;
-      
-      //cout << glm::to_string(this->vertices[this->faces.draw_indices[i*3+j]].normal) << endl;
-      //cout << glm::to_string(faces.normal[i]) << endl;
-    }
-  }
 }
 
 void MESH::compute_light_product(LIGHT& THE_LIGHT) {
@@ -157,9 +145,11 @@ void MESH::compute_light_product(LIGHT& THE_LIGHT) {
   //cout << glm::to_string(ambient_product) << endl;
 }
 
-void read_mesh(string filename, MESH& mesh, int count,
+void read_mesh(string filename, MESH& mesh, int repeated_count,
                glm::vec3& max_xyz, glm::vec3& min_xyz,
                GLuint shader){
+  glm::vec3 local_max = glm::vec3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+  glm::vec3 local_min = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
   vector<GLuint> holder_indices;
   string off;
   int vec_in_fac;
@@ -192,8 +182,16 @@ void read_mesh(string filename, MESH& mesh, int count,
     min_xyz[0] = min_xyz[0]>mesh.vertices[i].pos[0]?mesh.vertices[i].pos[0]:min_xyz[0];
     min_xyz[1] = min_xyz[1]>mesh.vertices[i].pos[1]?mesh.vertices[i].pos[1]:min_xyz[1];
     min_xyz[2] = min_xyz[2]>mesh.vertices[i].pos[2]?mesh.vertices[i].pos[2]:min_xyz[2];
+
+    local_max[0] = local_max[0]<mesh.vertices[i].pos[0]?mesh.vertices[i].pos[0]:local_max[0];
+    local_max[1] = local_max[1]<mesh.vertices[i].pos[1]?mesh.vertices[i].pos[1]:local_max[1];
+    local_max[2] = local_max[2]<mesh.vertices[i].pos[2]?mesh.vertices[i].pos[2]:local_max[2];
+    local_min[0] = local_min[0]>mesh.vertices[i].pos[0]?mesh.vertices[i].pos[0]:local_min[0];
+    local_min[1] = local_min[1]>mesh.vertices[i].pos[1]?mesh.vertices[i].pos[1]:local_min[1];
+    local_min[2] = local_min[2]>mesh.vertices[i].pos[2]?mesh.vertices[i].pos[2]:local_min[2];
   }
   /* reading faces */
+  int count = 0;
   for (int i=0; i<(int)mesh.num_f; i++){
     my_fin >> vec_in_fac;
     mesh.faces.num_v.push_back(static_cast<GLuint>(vec_in_fac));
@@ -201,16 +199,23 @@ void read_mesh(string filename, MESH& mesh, int count,
       for (int j=0; j<vec_in_fac;j++){
         my_fin >> temp;
         mesh.faces.draw_indices.push_back(temp);
+        mesh.vertices_flat.push_back(VERTEX());
+        mesh.vertices_flat[count].pos = mesh.vertices[temp].pos;
 
         if (j == 0) {
           mesh.faces.edge_indices.push_back(temp);
+          mesh.faces.edge_flat.push_back(count);
           temp_first = temp;
         } else {
           mesh.faces.edge_indices.push_back(temp);
           mesh.faces.edge_indices.push_back(temp);
+          mesh.faces.edge_flat.push_back(count);
+          mesh.faces.edge_flat.push_back(count);
         }
+        count++;
       }
       mesh.faces.edge_indices.push_back(temp_first);
+      mesh.faces.edge_flat.push_back(count-3);
     }else{ // when more than three vertices in a face
       for (int j=0; j<vec_in_fac;j++){
         my_fin >> temp;
@@ -229,15 +234,46 @@ void read_mesh(string filename, MESH& mesh, int count,
         mesh.faces.draw_indices.push_back(holder_indices[0]);
         mesh.faces.draw_indices.push_back(holder_indices[j+1]);
         mesh.faces.draw_indices.push_back(holder_indices[j+2]);
+        mesh.vertices_flat.push_back(VERTEX());
+        mesh.vertices_flat[count].pos = mesh.vertices[holder_indices[0]].pos;
+        mesh.faces.edge_flat.push_back(count);
+        count++;
+        mesh.vertices_flat.push_back(VERTEX());
+        mesh.vertices_flat[count].pos = mesh.vertices[holder_indices[j+1]].pos;
+        mesh.faces.edge_flat.push_back(count);
+        mesh.faces.edge_flat.push_back(count);
+        count++;
+        mesh.vertices_flat.push_back(VERTEX());
+        mesh.vertices_flat[count].pos = mesh.vertices[holder_indices[j+2]].pos;
+        mesh.faces.edge_flat.push_back(count);
+        mesh.faces.edge_flat.push_back(count);
+        count++;
+        mesh.faces.edge_flat.push_back(count-3);
       }
       holder_indices.clear(); // reset holder
     }
   }
   my_fin.close();
-  for (int i = 0; i < count; i++) {
-    mesh.transforms.push_back(glm::mat4());
+  for (int i = 0; i < repeated_count; i++) {
+    float min_scale = FLT_MAX;
+    for (int j = 0; j < 3; j++) {
+      min_scale = local_max[j]-local_min[j]<min_scale?local_max[j]-local_min[j]:min_scale;
+    }
+    glm::mat4 new_mat;
+    new_mat = glm::translate(glm::vec3(
+                         (local_min[0]-local_max[0])*0.5f + (mesh.id[i]%4)*BLOCK_X,
+                         (local_min[1]-local_max[1])*0.5f,
+                         (local_min[2]-local_max[2])*0.5f + (mesh.id[i]/4)*BLOCK_Z));
+    new_mat = glm::scale(new_mat, glm::vec3(
+                         MESH_X/min_scale,
+                         MESH_Y/min_scale,
+                         MESH_Z/min_scale));
+    
+    mesh.scaled.push_back(new_mat);
+    mesh.transforms.push_back(new_mat);
   }
   load_texture(mesh, material_props[MAT_TURQUOISE]);
+  mesh.spin = glm::vec3(0.0f, 0.0f, 0.0f);
   mesh.compute_face_normal();
   mesh.compute_vertex_normal();
   mesh.setup(shader);
@@ -253,8 +289,13 @@ void read_all_meshes(map<string, int>& filenames, vector<MESH>& all_meshes,
   min_xyz[1] = FLT_MAX;
   min_xyz[2] = FLT_MAX;
   int i = 0;
+  int id_count = 0;
   for (auto itr_file = filenames.begin(); itr_file != filenames.end(); itr_file++){
     //cout << "reading " << filenames[i] << endl;
+    for (int j = 0; j < itr_file->second; j++) {
+      all_meshes[i].id.push_back(id_count);
+      id_count++;
+    }
     read_mesh(itr_file->first, all_meshes[i], itr_file->second, max_xyz, min_xyz,
               shader);
     i++;
@@ -333,67 +374,75 @@ void MESH::draw(GLuint shader, glm::mat4& PROJ_MAT, glm::mat4& MV_MAT,
   glUniformMatrix4fv(proj, 1, GL_FALSE, glm::value_ptr(PROJ_MAT));
   GLuint mv = glGetUniformLocation(shader, "ModelView");
   glUniformMatrix4fv(mv, 1, GL_FALSE, glm::value_ptr(MV_MAT));
-  //TODO
   GLuint trans = glGetUniformLocation(shader, "Transformation");
-  glUniformMatrix4fv(trans, 1, GL_FALSE, glm::value_ptr(transforms[0]));
-  //cout << glm::to_string(PROJ_MAT) << endl;
+  for (unsigned int i = 0; i < id.size(); i++) {
+    glUniformMatrix4fv(trans, 1, GL_FALSE, glm::value_ptr(transforms[i]));
+    //cout << i <<": " << glm::to_string(transforms[i]) << endl;
+    
+    switch(DRAW_MODE) {
+      case FACE:
+        if (SHADING_MODE == FLAT) {
+          glBindVertexArray(this->vao_flat);
+          glBindBuffer(GL_ARRAY_BUFFER, this->vbo_flat);
+          glDrawArrays(GL_TRIANGLES, 0, this->vertices_flat.size());
+        } else {
+          glBindVertexArray(this->vao_other);
+          glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ebo_other);
+          glDrawElements(GL_TRIANGLES, this->faces.draw_indices.size(), 
+            GL_UNSIGNED_INT, (void*) 0);
+        }
+        break;
 
-  //glm::vec3 pos(MV_MAT*this->transforms[0]*glm::vec4(this->vertices[1].pos, 1));
-  //glm::vec3 pos_light(MV_MAT*THE_LIGHT.light0);
-  //glm::vec3 L = glm::normalize(pos_light - pos);
-  //glm::vec3 N(glm::normalize(MV_MAT*this->transforms[0]*glm::vec4(this->vertices[1].normal, 0.0)));
-  //cout << glm::to_string(L) << endl;
-  //cout << glm::to_string(N) << endl;
-  //cout << glm::dot(L, N) << endl;
-  //for (auto itr = vertices.begin(); itr != vertices.end(); itr++)
-  //  cout << glm::to_string(itr->pos) << endl;
-  switch(DRAW_MODE) {
-    case FACE:
+      case POINT:
       if (SHADING_MODE == FLAT) {
-        glBindVertexArray(this->vao_flat);
-        glBindBuffer(GL_ARRAY_BUFFER, this->vbo_flat);
-        glDrawArrays(GL_TRIANGLES, 0, this->vertices_flat.size());
-      } else {
-        glBindVertexArray(this->vao_other);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ebo_other);
-        glDrawElements(GL_TRIANGLES, this->faces.draw_indices.size(), 
+          glBindVertexArray(this->vao_flat);
+          glBindBuffer(GL_ARRAY_BUFFER, this->vbo_flat);
+          glDrawArrays(GL_POINTS, 0, this->vertices_flat.size());
+        } else {
+          glBindVertexArray(this->vao_other);
+          glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ebo_other);
+          glDrawElements(GL_POINTS, this->faces.draw_indices.size(), 
           GL_UNSIGNED_INT, (void*) 0);
-      }
-      break;
+        }
+        break;
 
-    case POINT:
-      glBindVertexArray(this->vao_other);
-      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ebo_other);
-      glDrawElements(GL_POINTS, this->faces.draw_indices.size(), 
-        GL_UNSIGNED_INT, (void*) 0);
-      break;
+      case EDGE:
+        if (SHADING_MODE == FLAT) {
+          glBindVertexArray(this->vao_flat);
+          glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ebo_flat);
+          glDrawElements(GL_LINES, this->faces.edge_flat.size(), 
+            GL_UNSIGNED_INT, (void*) 0);
+        } else {
+          glBindVertexArray(this->vao_other);
+          glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ebo_edge);
+          glDrawElements(GL_LINES, this->faces.edge_indices.size(), 
+            GL_UNSIGNED_INT, (void*) 0);
+        }
+        break;
 
-    case EDGE:
-      if (SHADING_MODE == FLAT) {
-        //glBindBuffer(GL_ARRAY_BUFFER, this->vbo_flat);
-        //glDrawArrays(GL_, 0, this->vertices_flat.size());
-      } else {
-        glBindVertexArray(this->vao_other);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ebo_edge);
-        glDrawElements(GL_LINES, this->faces.edge_indices.size(), 
-          GL_UNSIGNED_INT, (void*) 0);
-      }
-      break;
-
-    default:
-      break;
+      default:
+        break;
+    }
   }
-  glBindVertexArray(0);
 }
 
 void MESH::rotate() {
-  for (auto transform = transforms.begin(); transform != transforms.end();
-    transform++) {
-    *transform = glm::rotate(*transform, 1.0f*DEGREE_TO_RADIAN, 
+  spin[0] += 1.0f;
+  spin[1] -= 1.0f;
+  spin[2] +=1.0f;
+  if (spin[0] > 720.0f)
+    spin[0] -= 720.f;
+  if (spin[1] < 720.0f)
+    spin[1] += 720.f;
+  if (spin[2] > 720.0f)
+    spin[2] -= 720.f;
+  for (unsigned int i = 0; i < transforms.size(); i++) {
+    transforms[i] = scaled[i];
+    transforms[i] = glm::rotate(transforms[i], spin[0]*DEGREE_TO_RADIAN, 
       glm::vec3(1.0f, 0.0f, 0.0f));
-    *transform = glm::rotate(*transform, 0.7f*DEGREE_TO_RADIAN, 
+    transforms[i] = glm::rotate(transforms[i], spin[1]*DEGREE_TO_RADIAN, 
       glm::vec3(0.0f, 1.0f, 0.0f));
-    *transform = glm::rotate(*transform, -0.3f*DEGREE_TO_RADIAN, 
+    transforms[i] = glm::rotate(transforms[i], spin[2]*DEGREE_TO_RADIAN, 
       glm::vec3(0.0f, 0.0f, 1.0f));
   }
 }
