@@ -11,7 +11,7 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
-typedef enum _z_direction{ZOOM_IN, ZOOM_OUT} Z_DIRECTION;
+typedef enum _z_direction{ZOOM_IN, ZOOM_OUT} z_direction;
 
 void init(GLFWwindow* window);
 void reshape(GLFWwindow* window, int w, int h);
@@ -19,6 +19,6 @@ void framebuffer_resize(GLFWwindow* window, int width, int height);
 void keyboard(GLFWwindow *w, int key, int scancode, int action, int mods);
 void mouse(GLFWwindow *window, int button, int action, int mods);
 void change_perspective(GLFWwindow* window);
-void change_view(Z_DIRECTION z);
+void change_view(z_direction z);
 void print();
 #endif

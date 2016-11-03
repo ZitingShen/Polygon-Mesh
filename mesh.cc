@@ -3,7 +3,7 @@
 using namespace std;
 
 int WIDTH, HEIGHT;
-int IS_PAUSED = GLFW_FALSE;
+int IS_PAUSED = GLFW_TRUE;
 int PAUSE_TIME = 0;
 p_mode PROJ_MODE = PERSPECTIVE;
 d_mode DRAW_MODE = FACE;
@@ -13,6 +13,7 @@ LIGHT THE_LIGHT;
 map<string, int> FILE_NAMES;
 vector<MESH> MESHES;
 GLuint SHADER, flat_shader, gouraud_shader, phong_shader;
+s_mode SHADING_MODE;
 glm::vec3 CENTER, EYE, UP;
 
 int main(int argc, char *argv[]){
@@ -49,7 +50,7 @@ int main(int argc, char *argv[]){
   flat_shader = gouraud_shader;
   phong_shader = initshader("phong_vs.glsl", "phong_fs.glsl");
   SHADER = gouraud_shader;
-  MESHES.reserve(FILE_NAMES.size());
+  SHADING_MODE = SMOOTH;
   MESHES.resize(FILE_NAMES.size());
   read_all_meshes(FILE_NAMES, MESHES, MAX_XYZ, MIN_XYZ, SHADER);
   init(window);
@@ -70,7 +71,7 @@ int main(int argc, char *argv[]){
 
     if(glfwGetWindowAttrib(window, GLFW_VISIBLE)){
       for (auto itr_mesh = MESHES.begin(); itr_mesh != MESHES.end(); itr_mesh++)
-        itr_mesh->draw(SHADER, PROJ_MAT, MV_MAT, THE_LIGHT, DRAW_MODE);
+        itr_mesh->draw(SHADER, PROJ_MAT, MV_MAT, THE_LIGHT, DRAW_MODE, SHADING_MODE);
       glfwSwapBuffers(window);
     }
 
@@ -130,13 +131,11 @@ void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods) {
       break;
 
       case GLFW_KEY_A:
-      IS_PAUSED = GLFW_TRUE;
-      PAUSE_TIME++;
-      break;
-
-      case GLFW_KEY_Z:
-      IS_PAUSED = GLFW_FALSE;
-      PAUSE_TIME = 0;
+      IS_PAUSED = 1 - IS_PAUSED;
+      if (IS_PAUSED)
+        PAUSE_TIME++;
+      else
+        PAUSE_TIME = 0;
       break;
 
       case GLFW_KEY_E:
@@ -152,18 +151,21 @@ void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods) {
       break;
 
       case GLFW_KEY_S:
+      SHADING_MODE = FLAT;
       SHADER = flat_shader;
       for (auto itr_mesh = MESHES.begin(); itr_mesh != MESHES.end(); itr_mesh++)
         itr_mesh->bind_flat(SHADER);
       break;
 
       case GLFW_KEY_F:
+      SHADING_MODE = SMOOTH;
       SHADER = gouraud_shader;
       for (auto itr_mesh = MESHES.begin(); itr_mesh != MESHES.end(); itr_mesh++)
         itr_mesh->bind_other(SHADER);
       break;
 
       case GLFW_KEY_D:
+      SHADING_MODE = PHONG;
       SHADER = phong_shader;
       for (auto itr_mesh = MESHES.begin(); itr_mesh != MESHES.end(); itr_mesh++)
         itr_mesh->bind_other(SHADER);
@@ -215,7 +217,7 @@ void change_perspective(GLFWwindow* window) {
   }
 }
 
-void change_view(Z_DIRECTION z) {
+void change_view(z_direction z) {
   glm::vec3 zoom_step = (EYE - CENTER)*ZOOM_STEP_RATIO;
   cout << glm::to_string(zoom_step) << endl;
   cout << z << " " << ZOOM_IN << endl;

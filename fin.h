@@ -13,6 +13,7 @@ using namespace std;
 
 typedef enum _p_mode{PARALLEL, PERSPECTIVE} p_mode;
 typedef enum _d_mode{POINT, EDGE, FACE} d_mode;
+typedef enum _s_mode{FLAT, SMOOTH, PHONG} s_mode;
 
   /* 
    Light Source
@@ -42,9 +43,9 @@ struct VERTEX{
 };
 
 struct FACES{
-  vector<GLushort> num_v;
-  vector<GLushort> edge_indices;  // origianl indices verbatim
-  vector<GLushort> draw_indices; // triangulised indices
+  vector<GLuint> num_v;
+  vector<GLuint> edge_indices;  // edge indices verbatim
+  vector<GLuint> draw_indices; // triangulised indices
   vector<glm::vec3> normal;     // nromals of triangulaised faces
 };
 
@@ -69,10 +70,10 @@ class MESH {
     void compute_vertex_normal();
     void compute_light_product(LIGHT& THE_LIGHT);
     void draw(GLuint shader, glm::mat4& PROJ_MAT, glm::mat4& MV_MAT, 
-      LIGHT& THE_LIGHT, d_mode DRAW_MODE);
+      LIGHT& THE_LIGHT, d_mode DRAW_MODE, s_mode SHADING_MODE);
     void rotate();
   private:
-    GLuint vao, vbo_flat, vbo_other, ebo_edge, ebo_other;
+    GLuint vao_other, vao_flat, vbo_flat, vbo_other, ebo_edge, ebo_other;
 };
 
  // in vbos
