@@ -4,8 +4,11 @@ using namespace std;
 
 int WIDTH, HEIGHT;
 int IS_PAUSED = GLFW_TRUE;
+int IS_ROTATED = GLFW_FALSE;
 int PAUSE_TIME = 0;
 GLfloat PARALLEL_SCALE = 1.0;
+GLfloat ALL_ROTATE_X = 0.0, ALL_ROTATE_Z = 0.0;
+double pmousex, pmousey;
 p_mode PROJ_MODE = PERSPECTIVE;
 d_mode DRAW_MODE = FACE;
 glm::mat4 PROJ_MAT, MV_MAT;
@@ -59,6 +62,7 @@ int main(int argc, char *argv[]){
   glfwSetWindowSizeCallback(window, reshape);
   glfwSetKeyCallback(window, keyboard);
   glfwSetMouseButtonCallback(window, mouse);
+  glfwSetCursorPosCallback(window, cursor);
   glfwSetFramebufferSizeCallback(window, framebuffer_resize);
   
   glEnable(GL_DEPTH_TEST);
@@ -76,6 +80,7 @@ int main(int argc, char *argv[]){
     }
 
     if(!IS_PAUSED || PAUSE_TIME > 0) {
+      change_view(PROJ_MODE, NONE);
       for (auto itr_mesh = MESHES.begin(); itr_mesh != MESHES.end(); itr_mesh++)
         itr_mesh->rotate();
       if (IS_PAUSED && PAUSE_TIME > 0) {
@@ -96,11 +101,6 @@ void init(GLFWwindow* window) {
 
   change_perspective(window);
   //load_random_texture(MESHES);
-  //glm::vec3 diff = MAX_XYZ - MIN_XYZ;
-  //CENTER = (MAX_XYZ + MIN_XYZ)*0.5f;
-  //EYE = glm::vec3(CENTER[0] + diff[0]*INITIAL_X_DISPLACEMENT, 
-  //                CENTER[1] + diff[1]*INITIAL_Y_DISPLACEMENT, 
-  //                CENTER[2] + diff[2]*INITIAL_Z_DISPLACEMENT);
   CENTER = glm::vec3(0.7*BLOCK, 0, 0.7*BLOCK);
   EYE = glm::vec3(EYE_X_DISPLACEMENT, EYE_Y_DISPLACEMENT, EYE_Z_DISPLACEMENT);
   UP = glm::vec3(0, 0, 1);
@@ -109,7 +109,7 @@ void init(GLFWwindow* window) {
   THE_LIGHT.light0 = glm::vec4(LIGHT_X, LIGHT_Y, LIGHT_Z, 0);
   for (auto itr_mesh = MESHES.begin(); itr_mesh != MESHES.end(); itr_mesh++)
     itr_mesh->compute_light_product(THE_LIGHT);
-  
+  glfwGetCursorPos(window, &pmousex, &pmousey);
 }
 
 void framebuffer_resize(GLFWwindow* window, int width, int height) {
@@ -190,14 +190,29 @@ void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods) {
 }
 
 void mouse(GLFWwindow* window, int button, int action, int mods) {
-  double mousex, mousey;
-  int w, h;
-  
   if (action == GLFW_PRESS && button == GLFW_MOUSE_BUTTON_LEFT) {
-    
+    IS_ROTATED = GLFW_TRUE;
   } else if (action == GLFW_RELEASE && button == GLFW_MOUSE_BUTTON_LEFT) {
-
+    IS_ROTATED = GLFW_FALSE;
   }
+}
+
+void cursor(GLFWwindow* window, double xpos, double ypos) {
+  if (IS_ROTATED == GLFW_TRUE) {
+    if (xpos < pmousex)
+      ALL_ROTATE_X -= ROTATE_STEP_X;
+    else
+      ALL_ROTATE_X += ROTATE_STEP_X;
+
+    if (ypos < pmousey)
+      ALL_ROTATE_Z -= ROTATE_STEP_Z;
+    else
+      ALL_ROTATE_Z += ROTATE_STEP_Z;
+  }
+  //cout << ALL_ROTATE_X << endl;
+  //cout << ALL_ROTATE_Z << endl;
+  pmousex = xpos;
+  pmousey = ypos;
 }
 
 void change_perspective(GLFWwindow* window) {
@@ -219,18 +234,28 @@ void change_view(p_mode PROJ_MODE, z_direction z) {
     glm::vec3 zoom_step = (EYE - CENTER)*ZOOM_STEP_RATIO;
     if (z == ZOOM_IN) {
       EYE -= zoom_step;
-    } else {
+    } else if (z == ZOOM_OUT) {
       EYE += zoom_step;
     }
-    MV_MAT = glm::lookAt(EYE, CENTER, UP);
+    glm::mat4 rotation_mat = glm::rotate(ALL_ROTATE_X*DEGREE_TO_RADIAN, glm::vec3(1, 0, 0));
+    rotation_mat = glm::rotate(rotation_mat, ALL_ROTATE_Z*DEGREE_TO_RADIAN, glm::vec3(0, 0, 1));
+    glm::vec3 rotated_center(glm::vec4(CENTER, 1.0f)*rotation_mat);
+    
+    MV_MAT = glm::lookAt(EYE, rotated_center, UP);
+    MV_MAT = MV_MAT*rotation_mat;
   } else {
     if (z == ZOOM_IN) {
       PARALLEL_SCALE += ZOOM_STEP_RATIO;
-    } else {
+    } else if (z == ZOOM_OUT) {
       PARALLEL_SCALE -= ZOOM_STEP_RATIO;
     }
-    MV_MAT = glm::lookAt(EYE, CENTER, UP);
+    glm::mat4 rotation_mat = glm::rotate(ALL_ROTATE_X*DEGREE_TO_RADIAN, glm::vec3(1, 0, 0));
+    rotation_mat = glm::rotate(rotation_mat, ALL_ROTATE_Z*DEGREE_TO_RADIAN, glm::vec3(0, 0, 1));
+    glm::vec3 rotated_center(glm::vec4(CENTER, 1.0f)*rotation_mat);
+    
+    MV_MAT = glm::lookAt(EYE, rotated_center, UP);
     MV_MAT = glm::scale(MV_MAT, glm::vec3(PARALLEL_SCALE, PARALLEL_SCALE, PARALLEL_SCALE));
+    MV_MAT = MV_MAT*rotation_mat;
   }
 }
 

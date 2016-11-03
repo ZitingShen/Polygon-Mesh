@@ -32,6 +32,8 @@
 #define MESH_Y                    0.7f
 #define MESH_Z                    0.8f
 #define BLOCK                     2.0f
+#define ROTATE_STEP_X             1.0f
+#define ROTATE_STEP_Z             1.0f
 
 #define POS_LOCATION              0
 #define NORMAL_LOCATION           1
