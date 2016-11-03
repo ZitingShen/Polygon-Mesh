@@ -52,7 +52,7 @@ int main(int argc, char *argv[]){
   SHADER = gouraud_shader;
   SHADING_MODE = SMOOTH;
   MESHES.resize(FILE_NAMES.size());
-  read_all_meshes(FILE_NAMES, MESHES, MAX_XYZ, MIN_XYZ, SHADER);
+  read_all_meshes(FILE_NAMES, MESHES, SHADER);
   init(window);
 
   glfwMakeContextCurrent(window);
@@ -101,7 +101,7 @@ void init(GLFWwindow* window) {
   //EYE = glm::vec3(CENTER[0] + diff[0]*INITIAL_X_DISPLACEMENT, 
   //                CENTER[1] + diff[1]*INITIAL_Y_DISPLACEMENT, 
   //                CENTER[2] + diff[2]*INITIAL_Z_DISPLACEMENT);
-  CENTER = glm::vec3(0.7*BLOCK_X, 0, 0.7BLOCK_Z);
+  CENTER = glm::vec3(0.7*BLOCK, 0, 0.7*BLOCK);
   EYE = glm::vec3(EYE_X_DISPLACEMENT, EYE_Y_DISPLACEMENT, EYE_Z_DISPLACEMENT);
   UP = glm::vec3(0, 0, 1);
   MV_MAT = glm::lookAt(EYE, CENTER, UP);

@@ -9,7 +9,7 @@ CFLAGS=-g -Wall -std=c++11 -I/opt/ports/include
 TARGET = mesh
 SRC = $(TARGET).cc
 
-LIB =  fin.o initshader.o
+LIB = fin.o initshader.o
 all: mesh
 
 mesh: $(SRC) $(LIB)

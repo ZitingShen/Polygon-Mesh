@@ -230,8 +230,8 @@ int read_mesh(string filename, MESH& mesh, int repeated_count, GLuint shader){
         if (j == 0) {
           mesh.faces.edge_flat.push_back(count);
           temp_count = count;
-          count++;
         }
+        count++;
         mesh.vertices_flat.push_back(VERTEX());
         mesh.vertices_flat[count].pos = mesh.vertices[holder_indices[j+1]].pos;
         mesh.faces.edge_flat.push_back(count);
@@ -242,7 +242,6 @@ int read_mesh(string filename, MESH& mesh, int repeated_count, GLuint shader){
         mesh.faces.edge_flat.push_back(count);
         mesh.faces.edge_flat.push_back(count);
         count++;
-        mesh.faces.edge_flat.push_back(count-3);
       }
       mesh.faces.edge_flat.push_back(temp_count);
       holder_indices.clear(); // reset holder
