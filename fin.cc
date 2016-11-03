@@ -35,7 +35,6 @@ void MESH::setup(GLuint shader){
 
 void MESH::bind_flat(GLuint shader){
   // bind vbo
-  glUseProgram(shader);
   glBindVertexArray(this->vao_flat);
   glBindBuffer(GL_ARRAY_BUFFER, this->vbo_flat);
   glBindAttribLocation(shader, POS_LOCATION, "vPosition");
@@ -56,7 +55,6 @@ void MESH::bind_flat(GLuint shader){
 
 void MESH::bind_other(GLuint shader){
   // bind vbo
-  glUseProgram(shader);
   glBindVertexArray(this->vao_other);
   glBindBuffer(GL_ARRAY_BUFFER, this->vbo_other);
   glBindAttribLocation(shader, POS_LOCATION, "vPosition");
@@ -347,6 +345,7 @@ void load_random_texture(vector<MESH>& all_meshes){
 
 void MESH::draw(GLuint shader, glm::mat4& PROJ_MAT, glm::mat4& MV_MAT, 
   LIGHT& THE_LIGHT, d_mode DRAW_MODE, s_mode SHADING_MODE) {
+  glLinkProgram(shader);
   glUseProgram(shader);
 
   GLuint ambient = glGetUniformLocation(shader, "AmbientProduct");
