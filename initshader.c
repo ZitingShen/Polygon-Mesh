@@ -66,21 +66,6 @@ GLuint initshader(const char* vShaderFile, const char* fShaderFile){
 
     glAttachShader(program, shader);
   }
-  
-  /* link  and error check */
-  glLinkProgram(program);
-
-  glGetProgramiv( program, GL_LINK_STATUS, &linked );
-  if ( !linked ) {
-    fprintf(stderr, "Shader program failed to link\n");
-    glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logSize);
-    logMsg = (char *) malloc(logSize);
-    glGetProgramInfoLog(program, logSize, NULL, logMsg);
-    fprintf(stderr, "%s\n", logMsg);
-    free(logMsg);
-    
-    exit( EXIT_FAILURE );
-  }
 
   return program;
 }
