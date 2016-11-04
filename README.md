@@ -21,10 +21,10 @@ up/down: zoom in/out
 
 Extra Credits:
 
-1. two~three xyzdragons could be animated with no significant framerate drop on my macbook pro.
+1. two~three xyzdragons could be animated with no significant framerate drop on Qin's macbook pro.
 	a) Long reading time (as we are doing all computations while reading)
 	b) When more than one xyz dragons are present, framerate drops when switched to vertex mode and especially in edge mode
-Tech specs of my macbook:
+Tech specs of Qin's macbook:
 	2.9 GHz Intel Core i5
 	16 GB 1867 MHz DDR3
 	Intel Iris Graphics 6100 1536 MB
