@@ -94,7 +94,7 @@ int main(int argc, char *argv[]){
 }
 
 void init(GLFWwindow* window) {
-  glClearColor(0, 1.0, 1.0, 1.0);
+  glClearColor(0.0, 0.0, 0.0, 1.0);
   glColor3f(0.0, 0.0, 0.0);
   glPointSize(1);
   glLineWidth(0.01);

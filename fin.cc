@@ -85,9 +85,6 @@ void MESH::compute_face_normal(){
     this->vertices_flat[count].normal = normal;
     this->vertices_flat[count+1].normal = normal;
     this->vertices_flat[count+2].normal = normal;
-    //cout << glm::to_string(vertices_flat[count].normal) << " "
-    //     << glm::to_string(vertices_flat[count+1].normal) << " "
-    //     << glm::to_string(vertices_flat[count+2].normal) << " " << endl;
   }
 }
 
