@@ -104,7 +104,7 @@ void init(GLFWwindow* window) {
   glLineWidth(0.01);
 
   change_perspective(window);
-  q
+  
   CENTER = glm::vec3(0.7*BLOCK, 0, 0.7*BLOCK);
   EYE = glm::vec3(EYE_X_DISPLACEMENT, EYE_Y_DISPLACEMENT, EYE_Z_DISPLACEMENT);
   UP = glm::vec3(0, 0, 1);
