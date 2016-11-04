@@ -131,19 +131,6 @@ void reshape(GLFWwindow* window, int w, int h) {
 void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods) {
   if (action == GLFW_PRESS) {
     switch(key) {
-      case GLFW_KEY_RIGHT:
-      if (ID < 0)
-        ID = 0;
-      else {
-        ID++;
-        ID = ID % TOTAL_MESHES;
-      }
-      break;
-
-      case GLFW_KEY_U:
-      ID = -1;
-      break;
-
       case GLFW_KEY_P:
       PROJ_MODE = (p_mode)(1-PROJ_MODE);
       change_perspective(window);
@@ -211,9 +198,19 @@ void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods) {
 }
 
 void mouse(GLFWwindow* window, int button, int action, int mods) {
-  if (action == GLFW_PRESS && button == GLFW_MOUSE_BUTTON_LEFT) {
+  if (action == GLFW_PRESS) {
     IS_ROTATED = GLFW_TRUE;
-  } else if (action == GLFW_RELEASE && button == GLFW_MOUSE_BUTTON_LEFT) {
+    if (button == GLFW_MOUSE_BUTTON_LEFT) {
+      ID = -1;
+    } else if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+      if (ID < 0)
+        ID = 0;
+      else {
+        ID++;
+        ID = ID % TOTAL_MESHES;
+      }
+    }
+  } else if (action == GLFW_RELEASE) {
     IS_ROTATED = GLFW_FALSE;
   }
 }
