@@ -85,9 +85,6 @@ void MESH::compute_face_normal(){
     this->vertices_flat[count].normal = normal;
     this->vertices_flat[count+1].normal = normal;
     this->vertices_flat[count+2].normal = normal;
-    //cout << glm::to_string(vertices_flat[count].normal) << " "
-    //     << glm::to_string(vertices_flat[count+1].normal) << " "
-    //     << glm::to_string(vertices_flat[count+2].normal) << " " << endl;
   }
 }
 
@@ -263,9 +260,9 @@ int read_mesh(string filename, MESH& mesh, int repeated_count, GLuint shader){
     
     mesh.scaled.push_back(new_mat);
     mesh.transforms.push_back(new_mat);
+    mesh.spin.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
   }
   load_texture(mesh, material_props[MAT_TURQUOISE]);
-  mesh.spin = glm::vec3(0.0f, 0.0f, 0.0f);
   mesh.compute_face_normal();
   mesh.compute_vertex_normal();
   mesh.setup(shader);
@@ -415,23 +412,29 @@ void MESH::draw(GLuint shader, glm::mat4& PROJ_MAT, glm::mat4& MV_MAT,
   }
 }
 
+void MESH::update() {
+  for (int i = 0; i < spin.size(); i++) {
+    spin[i][0] += 1.0f;
+    spin[i][1] -= 1.0f;
+    spin[i][2] +=1.0f;
+  }
+}
+
 void MESH::rotate() {
-  spin[0] += 1.0f;
-  spin[1] -= 1.0f;
-  spin[2] +=1.0f;
-  if (spin[0] > 720.0f)
-    spin[0] -= 720.f;
-  if (spin[1] < 720.0f)
-    spin[1] += 720.f;
-  if (spin[2] > 720.0f)
-    spin[2] -= 720.f;
   for (unsigned int i = 0; i < transforms.size(); i++) {
+    if (spin[i][0] > 720.0f)
+      spin[i][0] -= 720.f;
+    if (spin[i][1] < 720.0f)
+      spin[i][1] += 720.f;
+    if (spin[i][2] > 720.0f)
+      spin[i][2] -= 720.f;
+
     transforms[i] = scaled[i];
-    transforms[i] = glm::rotate(transforms[i], spin[0]*DEGREE_TO_RADIAN, 
+    transforms[i] = glm::rotate(transforms[i], spin[i][0]*DEGREE_TO_RADIAN, 
       glm::vec3(1.0f, 0.0f, 0.0f));
-    transforms[i] = glm::rotate(transforms[i], spin[1]*DEGREE_TO_RADIAN, 
+    transforms[i] = glm::rotate(transforms[i], spin[i][1]*DEGREE_TO_RADIAN, 
       glm::vec3(0.0f, 1.0f, 0.0f));
-    transforms[i] = glm::rotate(transforms[i], spin[2]*DEGREE_TO_RADIAN, 
+    transforms[i] = glm::rotate(transforms[i], spin[i][2]*DEGREE_TO_RADIAN, 
       glm::vec3(0.0f, 0.0f, 1.0f));
   }
 }

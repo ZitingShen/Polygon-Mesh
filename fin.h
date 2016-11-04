@@ -64,7 +64,7 @@ class MESH {
     TEXTURE  texture;
     FACES     faces;
     glm::vec4 ambient_product, diffuse_product, specular_product;
-    glm::vec3 spin, delta;
+    vector<glm::vec3> spin;
     /* Constructor */
     MESH();
     void setup(GLuint shader);
@@ -75,6 +75,7 @@ class MESH {
     void compute_light_product(LIGHT& THE_LIGHT);
     void draw(GLuint shader, glm::mat4& PROJ_MAT, glm::mat4& MV_MAT, 
       LIGHT& THE_LIGHT, d_mode DRAW_MODE, s_mode SHADING_MODE);
+    void update();
     void rotate();
   private:
     GLuint vao_other, vao_flat, vbo_flat, vbo_other, ebo_edge, ebo_other, ebo_flat;

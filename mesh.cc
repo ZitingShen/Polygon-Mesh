@@ -6,6 +6,8 @@ int WIDTH, HEIGHT;
 int IS_PAUSED = GLFW_TRUE;
 int IS_ROTATED = GLFW_FALSE;
 int PAUSE_TIME = 0;
+int ID = -1;
+int TOTAL_MESHES = 0;
 GLfloat PARALLEL_SCALE = 1.0;
 GLfloat ALL_ROTATE_X = 0.0, ALL_ROTATE_Z = 0.0;
 double pmousex, pmousey;
@@ -72,6 +74,8 @@ int main(int argc, char *argv[]){
   while(!glfwWindowShouldClose(window)) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glfwPollEvents();
+    for (auto itr_mesh = MESHES.begin(); itr_mesh != MESHES.end(); itr_mesh++)
+      itr_mesh->rotate();
 
     if(glfwGetWindowAttrib(window, GLFW_VISIBLE)){
       for (auto itr_mesh = MESHES.begin(); itr_mesh != MESHES.end(); itr_mesh++)
@@ -82,7 +86,7 @@ int main(int argc, char *argv[]){
     if(!IS_PAUSED || PAUSE_TIME > 0) {
       change_view(PROJ_MODE, NONE);
       for (auto itr_mesh = MESHES.begin(); itr_mesh != MESHES.end(); itr_mesh++)
-        itr_mesh->rotate();
+        itr_mesh->update();
       if (IS_PAUSED && PAUSE_TIME > 0) {
         print();
         PAUSE_TIME--;
@@ -94,7 +98,7 @@ int main(int argc, char *argv[]){
 }
 
 void init(GLFWwindow* window) {
-  glClearColor(0, 1.0, 1.0, 1.0);
+  glClearColor(0.0, 0.0, 0.0, 1.0);
   glColor3f(0.0, 0.0, 0.0);
   glPointSize(1);
   glLineWidth(0.01);
@@ -110,6 +114,10 @@ void init(GLFWwindow* window) {
   for (auto itr_mesh = MESHES.begin(); itr_mesh != MESHES.end(); itr_mesh++)
     itr_mesh->compute_light_product(THE_LIGHT);
   glfwGetCursorPos(window, &pmousex, &pmousey);
+
+  for (auto itr_mesh = MESHES.begin(); itr_mesh != MESHES.end(); itr_mesh++) {
+    TOTAL_MESHES += itr_mesh->spin.size();
+  }
 }
 
 void framebuffer_resize(GLFWwindow* window, int width, int height) {
@@ -123,6 +131,19 @@ void reshape(GLFWwindow* window, int w, int h) {
 void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods) {
   if (action == GLFW_PRESS) {
     switch(key) {
+      case GLFW_KEY_RIGHT:
+      if (ID < 0)
+        ID = 0;
+      else {
+        ID++;
+        ID = ID % TOTAL_MESHES;
+      }
+      break;
+
+      case GLFW_KEY_U:
+      ID = -1;
+      break;
+
       case GLFW_KEY_P:
       PROJ_MODE = (p_mode)(1-PROJ_MODE);
       change_perspective(window);
@@ -199,18 +220,17 @@ void mouse(GLFWwindow* window, int button, int action, int mods) {
 
 void cursor(GLFWwindow* window, double xpos, double ypos) {
   if (IS_ROTATED == GLFW_TRUE) {
-    if (xpos < pmousex)
-      ALL_ROTATE_X -= ROTATE_STEP_X;
-    else
-      ALL_ROTATE_X += ROTATE_STEP_X;
-
-    if (ypos < pmousey)
-      ALL_ROTATE_Z -= ROTATE_STEP_Z;
-    else
-      ALL_ROTATE_Z += ROTATE_STEP_Z;
+    int count = 0;
+    for (auto itr_mesh = MESHES.begin(); itr_mesh != MESHES.end(); itr_mesh++) {
+      for (int i = 0; i < itr_mesh->spin.size(); i++) {
+        if (ID == -1 || count == ID) {
+          itr_mesh->spin[i][2] += ROTATE_STEP_Z*(xpos - pmousex);
+          itr_mesh->spin[i][0] += ROTATE_STEP_X*(ypos - pmousey);
+        }
+        count++;
+      }
+    }
   }
-  //cout << ALL_ROTATE_X << endl;
-  //cout << ALL_ROTATE_Z << endl;
   pmousex = xpos;
   pmousey = ypos;
 }
