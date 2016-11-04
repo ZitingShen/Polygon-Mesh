@@ -148,14 +148,14 @@ void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods) {
       DRAW_MODE = FACE;
       break;
 
-      case GLFW_KEY_S:
+      case GLFW_KEY_F:
       SHADING_MODE = FLAT;
       SHADER = flat_shader;
       for (auto itr_mesh = MESHES.begin(); itr_mesh != MESHES.end(); itr_mesh++)
         itr_mesh->bind_flat(SHADER);
       break;
 
-      case GLFW_KEY_F:
+      case GLFW_KEY_S:
       SHADING_MODE = SMOOTH;
       SHADER = gouraud_shader;
       for (auto itr_mesh = MESHES.begin(); itr_mesh != MESHES.end(); itr_mesh++)
