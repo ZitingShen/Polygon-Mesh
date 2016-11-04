@@ -5,6 +5,7 @@
 3. Store normal as vec3, but declared in shader as vec3, and expand as vec4(vNormal, 0,0) manually
 4. All (vertex and face) normals are computed when reading files and stored in MESH objects
 5. Using one vbo and one draw call per mesh
+6. Using hardcode material
 
 Keyboard Control:
 
