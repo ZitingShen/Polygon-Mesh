@@ -34,7 +34,7 @@ GLuint initshader(const char* vShaderFile, const char* fShaderFile){
   GLuint program = glCreateProgram();
   int i;
   struct Shader *s;
-  GLint  shader, compiled, linked, logSize;
+  GLint  shader, compiled, /* linked, */ logSize;
   char   *logMsg;
 
 
